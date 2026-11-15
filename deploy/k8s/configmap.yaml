@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: plmux
+data:
+  TZ: "Asia/Tokyo"                 # 履歴 CSV の時刻表記
+  PLMUX_HTTP_PORT: "8080"          # hostNetwork なのでノード上で空いているポートにする
+  PLMUX_DEVICE_NAME: "plmux"
+  PLMUX_HISTORY_MIN_PLAY_SECONDS: "15"
+  PLMUX_HISTORY_REQUIRE_ON_AIR: "true"
+  PLMUX_LINK_MODE: "OFF"           # OFF / MONITOR / FOLLOW (GUI からも変更可)
+  PLMUX_LINK_LATENCY_MS: "1"
+  PLMUX_LINK_ALIGN_BARS: "true"
+  PLMUX_CARABINER_EMBEDDED: "true" # x86_64 ノードのみ。arm64 では Carabiner を別途起動して false に

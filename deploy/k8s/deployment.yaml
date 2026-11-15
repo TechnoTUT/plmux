@@ -1,0 +1,56 @@
+# 参考マニフェスト。本番用は TechnoTUT/Infra 側に置く。
+#
+# 要点:
+#  - Pro DJ Link は UDP ブロードキャスト (50000-50002) なので hostNetwork が必須。
+#    Pod は「XDJ-AZ と同じ L2 セグメントに NIC を持つノード」で動かす (nodeSelector で固定)。
+#  - UDP ポートと SQLite を占有するのでレプリカは 1、更新は Recreate。
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plmux
+  labels: { app: plmux }
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: plmux }
+  template:
+    metadata:
+      labels: { app: plmux }
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      nodeSelector:
+        technotut.net/djlink: "true"   # DJ ブースの LAN に繋がっているノードにラベルを付ける
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      containers:
+        - name: plmux
+          image: ghcr.io/technotut/plmux:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef: { name: plmux }
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 200m, memory: 384Mi }
+            limits: { memory: 768Mi }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+            - { name: tmp, mountPath: /tmp }   # 同梱 Carabiner バイナリの展開先
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: plmux-data }
+        - name: tmp
+          emptyDir: {}

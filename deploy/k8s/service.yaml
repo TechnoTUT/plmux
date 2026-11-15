@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: plmux
+spec:
+  selector: { app: plmux }
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+# WebSocket (/ws) を通すこと。Ingress Controller によってはタイムアウト延長が必要。
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: plmux
+spec:
+  rules:
+    - host: plmux.example.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: plmux
+                port: { name: http }

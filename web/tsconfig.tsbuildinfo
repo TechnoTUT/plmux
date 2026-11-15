@@ -1,0 +1,1 @@
+{"root":["./src/api.ts","./src/format.ts","./src/main.ts","./src/types.ts","./src/composables/useLive.ts","./src/App.vue","./src/components/HistoryPanel.vue","./src/components/LinkPanel.vue","./src/components/PlayerCard.vue","./vite.config.ts"],"version":"5.9.3"}

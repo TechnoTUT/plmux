@@ -1,0 +1,8 @@
+[submodule "vendor/beat-link"]
+	path = vendor/beat-link
+	url = https://github.com/deep-symmetry/beat-link.git
+	branch = main
+[submodule "vendor/crate-digger"]
+	path = vendor/crate-digger
+	url = https://github.com/deep-symmetry/crate-digger.git
+	branch = main

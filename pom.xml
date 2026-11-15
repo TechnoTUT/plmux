@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>plmux</groupId>
+  <artifactId>plmux-parent</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <!--
+    beat-link / crate-digger は git submodule (vendor/) の main からソースビルドする。
+    SNAPSHOT をリモートリポジトリから取らず、submodule のコミットで再現性を確保する。
+    submodule 更新は scripts/update-vendor.sh を使う (beatlink.version も自動で追従させる)。
+  -->
+  <modules>
+    <module>vendor/crate-digger</module>
+    <module>vendor/beat-link</module>
+    <module>server</module>
+  </modules>
+
+  <properties>
+    <beatlink.version>8.1.0-SNAPSHOT</beatlink.version>
+  </properties>
+</project>
