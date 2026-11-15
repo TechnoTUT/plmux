@@ -18,6 +18,7 @@ const statusLabel = computed(() => {
   <div class="app">
     <header class="top">
       <h1>plmux</h1>
+      <span v-if="state?.demo" class="demo" title="PLMUX_DEMO=true: ダミーデータを表示中">DEMO</span>
       <span class="status" :class="{ ok: connected && state?.djLinkOnline }">
         <span class="dot"></span>{{ statusLabel }}
       </span>
@@ -58,6 +59,10 @@ const statusLabel = computed(() => {
 .app { max-width: 1440px; margin: 0 auto; padding: 16px; }
 .top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
 h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.02em; }
+.demo {
+  font-size: 11px; font-weight: 800; letter-spacing: 0.08em; padding: 2px 8px; border-radius: 4px;
+  background: var(--sync); color: #14003a;
+}
 .status { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--master); }
 .status.ok .dot { background: var(--play); }

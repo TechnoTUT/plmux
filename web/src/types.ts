@@ -50,6 +50,7 @@ export interface LinkStatus {
 }
 
 export interface State {
+  demo: boolean
   djLinkOnline: boolean
   masterPlayer: number | null
   masterBpm: number
