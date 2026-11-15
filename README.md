@@ -70,7 +70,7 @@ docker run --network host -v plmux-data:/data plmux
 | `PLMUX_USE_STANDARD_PLAYER_NUMBER` | `false` | Make the Virtual CDJ claim player number 1–4. Not needed for the XDJ-AZ |
 | `PLMUX_HISTORY_MIN_PLAY_SECONDS` | `15` | Seconds a track must play before it is logged |
 | `PLMUX_HISTORY_REQUIRE_ON_AIR` | `true` | Only count play time while the channel is On-Air (fader up) |
-| `PLMUX_LINK_MODE` | `OFF` | Initial Link mode: `OFF` / `MONITOR` / `FOLLOW` (can be changed from the GUI) |
+| `PLMUX_LINK_MODE` | `OFF` | Default Link mode on startup: `OFF` / `MONITOR` / `FOLLOW`. A startup mode chosen in the GUI's Settings tab is saved and takes precedence. The current mode can always be changed in the Link tab |
 | `PLMUX_LINK_LATENCY_MS` | `1` | Latency compensation for beat packets |
 | `PLMUX_LINK_ALIGN_BARS` | `true` | Align bars, not just beats |
 | `PLMUX_WAVEFORM_STYLE` | `THREE_BAND` | Default waveform style: `THREE_BAND` / `RGB` / `BLUE`. Can be changed in the GUI's Settings tab, which is saved and takes precedence. Falls back if a player cannot provide it |
@@ -119,7 +119,7 @@ git add vendor pom.xml && git commit -m "Update beat-link"
 | GET | `/api/players/{n}/artwork` | Artwork image |
 | GET | `/api/players/{n}/waveform` | Waveform preview/detail, beat grid and cue points (see `Model.Waveform`) |
 | GET / PUT | `/api/link` | Link settings `{mode, latencyMs, alignBars}` |
-| GET / PUT | `/api/settings` | GUI settings `{waveformStyle}` (saved in `plmux.db`) |
+| GET / PUT | `/api/settings` | GUI settings `{waveformStyle, linkStartupMode}` (saved in `plmux.db`) |
 | GET / POST | `/api/sessions` | List sessions / start one `{name}` |
 | POST | `/api/sessions/end` | End the running session |
 | GET | `/api/history?session=current\|all\|{id}` | Track history |
