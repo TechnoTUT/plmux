@@ -1,0 +1,59 @@
+name: release
+
+# v から始まるタグ (例: v0.1.0) を push すると、単体で動く jar を添付した GitHub Release を作る。
+# コンテナイメージは image.yml が同じタグで ghcr.io に push する。
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Build web GUI
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      # beat-link / crate-digger (submodule) のテストは対象外にし、plmux のテストだけ実行する
+      - name: Build server and run tests
+        run: >
+          ./mvnw -B package -pl server -am
+          -Dtest='plmux.**' -Dsurefire.failIfNoSpecifiedTests=false
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          asset="plmux-server-${TAG}.jar"
+          cp server/target/plmux-server.jar "$asset"
+          image="ghcr.io/${GITHUB_REPOSITORY,,}:${TAG#v}"
+          notes=$(printf 'Container image: `%s`\n\nRun the jar with Java 21: `java -jar %s` (see README for configuration).' "$image" "$asset")
+          # v1.0.0-rc.1 のようにハイフンを含むタグはプレリリースにする
+          prerelease=()
+          if [[ "$TAG" == *-* ]]; then prerelease=(--prerelease); fi
+          gh release create "$TAG" "$asset" \
+            --title "$TAG" \
+            --notes "$notes" \
+            --generate-notes \
+            --verify-tag \
+            "${prerelease[@]}"
