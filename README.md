@@ -49,11 +49,6 @@ PLMUX_DEMO=true PLMUX_DATA_DIR=/tmp/plmux-demo java -jar server/target/plmux-ser
 Keep the server running (`java -jar …`, demo mode works fine) and start Vite with `cd web && npm run dev`.
 API and WebSocket requests are proxied to port 8080.
 
-Browser support: the GUI targets current browsers. The **Decks** tab also works on old devices such as
-iOS 12 (Safari 12) for use as a booth display: the build lowers JS syntax and CSS for Safari 12
-(`build.cssTarget`, plus `web/build/legacyCss.ts`, which unwraps `@layer` and expands `:where()` / `:is()`),
-and a small runtime fallback replaces flex `gap` with margins where it is unsupported. The other tabs may look off there.
-
 GUI URL options: `#history` / `#link` / `#settings` open a specific tab, `?theme=dark` / `?theme=light` force the color theme
 (handy for a fixed booth display).
 
