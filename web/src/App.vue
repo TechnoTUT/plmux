@@ -135,9 +135,9 @@ function tabDot(id: Tab): string | null {
 
       <!-- ==================== TAB: Decks ==================== -->
       <div v-show="activeTab === 'decks'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 content-start">
+        <div class="lg:col-span-2 grid grid-cols-1 gap-4 content-start">
           <PlayerCard v-for="p in state?.players ?? []" :key="p.number" :player="p" />
-          <div v-if="state && state.players.length === 0" class="card md:col-span-2 text-center py-16 space-y-2">
+          <div v-if="state && state.players.length === 0" class="card text-center py-16 space-y-2">
             <p class="font-semibold text-slate-700 dark:text-slate-200">No players found</p>
             <p class="text-sm text-slate-500 dark:text-slate-400">
               Make sure the XDJ-AZ / CDJs are on the same network and Pro DJ Link (LINK) is enabled.
