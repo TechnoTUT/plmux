@@ -8,6 +8,7 @@ Built primarily for the **Pioneer DJ XDJ-AZ**.
 - **Waveforms** — CDJ-style scrolling waveform and whole-track overview with beat grid, hot cues, memory points and loops (RGB, three-band and blue styles)
 - **Track history** — automatically logs tracks that have been playing On-Air for a while (15 s by default), grouped into sessions (events), exportable as CSV
 - **Ableton Link** — monitor a Link session, or make Link follow the tempo and beat grid of the CDJ tempo master (via Carabiner)
+- **OBS overlay** — a transparent Now Playing page for an OBS Browser source, styled from the Settings tab
 
 ## Layout
 
@@ -50,6 +51,14 @@ API and WebSocket requests are proxied to port 8080.
 
 GUI URL options: `#history` / `#link` / `#settings` open a specific tab, `?theme=dark` / `?theme=light` force the color theme
 (handy for a fixed booth display).
+
+### OBS overlay
+
+Add a **Browser** source in OBS with the URL `http://<server>:8080/overlay` and a size of 1920×1080.
+It shows the title, artist and artwork of the track on the tempo master deck, and keeps showing the last
+track when no deck is master. Theme, corner position, artwork and "hide when the master deck is stopped" are
+set in the GUI's Settings tab (with a live preview) and apply to open overlays immediately.
+With the Vite dev server, open `/overlay.html` instead.
 
 ### Container
 
@@ -114,12 +123,13 @@ git add vendor pom.xml && git commit -m "Update beat-link"
 
 | Method | Path | Description |
 |---|---|---|
-| WS | `/ws` | Pushes `state` (up to 10 Hz), `beat` and `history` (new entry) messages |
+| WS | `/ws` | Pushes `state` (up to 10 Hz), `beat`, `history` (new entry) and `settings` (after a change) messages |
+| GET | `/overlay` | Now Playing overlay page for OBS |
 | GET | `/api/state` | Current state |
 | GET | `/api/players/{n}/artwork` | Artwork image |
 | GET | `/api/players/{n}/waveform` | Waveform preview/detail, beat grid and cue points (see `Model.Waveform`) |
 | GET / PUT | `/api/link` | Link settings `{mode, latencyMs, alignBars}` |
-| GET / PUT | `/api/settings` | GUI settings `{waveformStyle, linkStartupMode}` (saved in `plmux.db`) |
+| GET / PUT | `/api/settings` | GUI settings `{waveformStyle, linkStartupMode, overlay: {theme, position, showArtwork, hideWhenIdle}}` (saved in `plmux.db`) |
 | GET / POST | `/api/sessions` | List sessions / start one `{name}` |
 | POST | `/api/sessions/end` | End the running session |
 | GET | `/api/history?session=current\|all\|{id}` | Track history |
