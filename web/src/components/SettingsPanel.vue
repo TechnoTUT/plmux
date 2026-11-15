@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import type { LinkMode, OverlayPosition, OverlaySettings, Settings, WaveformStyle } from '../types'
+import type { LinkMode, OverlayPosition, OverlaySettings, OverlayTag, Settings, WaveformStyle } from '../types'
 import { api, type SettingsPatch } from '../api'
 import { useLive } from '../composables/useLive'
 
@@ -43,6 +43,20 @@ const positions: { value: OverlayPosition; label: string }[] = [
   { value: 'BOTTOM_LEFT', label: 'Bottom left' },
   { value: 'BOTTOM_RIGHT', label: 'Bottom right' },
 ]
+
+const overlayTags: { value: OverlayTag; label: string }[] = [
+  { value: 'ALBUM', label: 'Album' },
+  { value: 'GENRE', label: 'Genre' },
+  { value: 'KEY', label: 'Key' },
+  { value: 'BPM', label: 'BPM' },
+]
+function toggleTag(tag: OverlayTag, on: boolean) {
+  const current = overlay.value?.tags ?? []
+  update({ overlay: { tags: on ? [...current, tag] : current.filter((t) => t !== tag) } })
+}
+
+/** スライダーを動かしている間の値 (離したときに保存する) */
+const opacityDraft = ref<number | null>(null)
 
 function apply(s: Settings) {
   waveformStyle.value = s.waveformStyle
@@ -235,6 +249,40 @@ const previewStyle = computed(() => ({ transform: `scale(${previewScale.value})`
           />
           Hide when the master deck is stopped
         </label>
+        <div class="space-y-2">
+          <p class="font-medium text-slate-600 dark:text-slate-300">
+            Background opacity
+            <span class="ml-1 font-mono text-slate-400">{{ opacityDraft ?? overlay.backgroundOpacity }}%</span>
+          </p>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="5"
+            class="w-full accent-brand"
+            :value="opacityDraft ?? overlay.backgroundOpacity"
+            :disabled="busy"
+            @input="opacityDraft = Number(($event.target as HTMLInputElement).value)"
+            @change="update({ overlay: { backgroundOpacity: Number(($event.target as HTMLInputElement).value) } })
+              .finally(() => (opacityDraft = null))"
+          />
+          <p class="text-xs text-slate-400">The band behind each line. 0% is fully transparent; text gets a shadow when the band is faint.</p>
+        </div>
+        <div class="space-y-2">
+          <p class="font-medium text-slate-600 dark:text-slate-300">Tags</p>
+          <div class="flex flex-wrap gap-x-4 gap-y-2">
+            <label v-for="t in overlayTags" :key="t.value" class="flex items-center gap-2 text-slate-700 dark:text-slate-200">
+              <input
+                type="checkbox"
+                class="checkbox"
+                :checked="overlay.tags.includes(t.value)"
+                :disabled="busy"
+                @change="toggleTag(t.value, ($event.target as HTMLInputElement).checked)"
+              />
+              {{ t.label }}
+            </label>
+          </div>
+        </div>
       </div>
     </section>
   </div>
