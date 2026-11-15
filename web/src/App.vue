@@ -62,13 +62,13 @@ function tabDot(id: Tab): string | null {
 
       <div class="flex flex-wrap items-center gap-3">
         <!-- Tab Switcher -->
-        <nav class="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
+        <nav class="flex max-w-full overflow-x-auto bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
           <button
             v-for="t in tabs"
             :key="t.id"
             @click="activeTab = t.id"
             :class="[
-              'px-3 sm:px-5 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2',
+              'px-2.5 sm:px-5 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 whitespace-nowrap flex-none',
               activeTab === t.id
                 ? 'bg-brand text-white shadow-md shadow-brand/20'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100',
