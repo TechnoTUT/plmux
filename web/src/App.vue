@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useLive } from './composables/useLive'
 import { useTheme } from './composables/useTheme'
 import PlayerCard from './components/PlayerCard.vue'
@@ -17,7 +17,14 @@ const tabs: { id: Tab; label: string }[] = [
   { id: 'history', label: 'History' },
   { id: 'link', label: 'Ableton Link' },
 ]
-const activeTab = ref<Tab>('decks')
+// タブは URL の #history のように指定でき、ブックマークやブース用ディスプレイで固定表示できる
+function tabFromHash(): Tab {
+  const h = location.hash.replace('#', '')
+  return tabs.some((t) => t.id === h) ? (h as Tab) : 'decks'
+}
+const activeTab = ref<Tab>(tabFromHash())
+watch(activeTab, (t) => history.replaceState(null, '', t === 'decks' ? location.pathname + location.search : `#${t}`))
+window.addEventListener('hashchange', () => (activeTab.value = tabFromHash()))
 
 const online = computed(() => connected.value && !!state.value?.djLinkOnline)
 const anyPlaying = computed(() => state.value?.players.some((p) => p.playing && p.onAir) ?? false)
