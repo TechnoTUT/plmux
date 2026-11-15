@@ -114,7 +114,12 @@ export interface OverlaySettings {
   position: OverlayPosition
   showArtwork: boolean
   hideWhenIdle: boolean
+  /** 文字の後ろの帯の不透明度 (0〜100)。0 で完全に透過 */
+  backgroundOpacity: number
+  tags: OverlayTag[]
 }
+
+export type OverlayTag = 'ALBUM' | 'GENRE' | 'KEY' | 'BPM'
 
 /** hotCue が 0 ならメモリーポイント、endMs があればループ */
 export interface Cue {
