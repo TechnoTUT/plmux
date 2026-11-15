@@ -57,8 +57,8 @@ GUI URL options: `#history` / `#link` / `#settings` open a specific tab, `?theme
 Add a **Browser** source in OBS with the URL `http://<server>:8080/overlay` and a size of 1920×1080.
 It shows the title, artist, artwork and optional tags (album, genre, key, BPM) of the track on the tempo master
 deck, and keeps showing the last track when no deck is master. The look follows the Track List theme of
-[prolink-tools](https://prolink.tools/): no card, just a translucent band behind each line.
-Theme, corner position (right corners are right-aligned), artwork, band opacity (0% = fully transparent),
+[prolink-tools](https://prolink.tools/), on a single translucent card.
+Theme, corner position (right corners are right-aligned), artwork, card opacity (0% = fully transparent),
 tags and "hide when the master deck is stopped" are set in the GUI's Settings tab (with a live preview) and
 apply to open overlays immediately.
 With the Vite dev server, open `/overlay.html` instead.
