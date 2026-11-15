@@ -1,85 +1,150 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useLive } from './composables/useLive'
+import { useTheme } from './composables/useTheme'
 import PlayerCard from './components/PlayerCard.vue'
 import LinkPanel from './components/LinkPanel.vue'
 import HistoryPanel from './components/HistoryPanel.vue'
+import StatusPanel from './components/StatusPanel.vue'
+import RecentTracks from './components/RecentTracks.vue'
 
 const { state, connected } = useLive()
+const { dark, toggle } = useTheme()
 
-const statusLabel = computed(() => {
-  if (!connected.value) return 'サーバーに再接続中…'
-  if (!state.value?.djLinkOnline) return 'DJ Link 機器を探しています…'
-  return 'DJ Link オンライン'
-})
+type Tab = 'decks' | 'history' | 'link'
+const tabs: { id: Tab; label: string }[] = [
+  { id: 'decks', label: 'Decks' },
+  { id: 'history', label: 'History' },
+  { id: 'link', label: 'Ableton Link' },
+]
+const activeTab = ref<Tab>('decks')
+
+const online = computed(() => connected.value && !!state.value?.djLinkOnline)
+const anyPlaying = computed(() => state.value?.players.some((p) => p.playing && p.onAir) ?? false)
+const link = computed(() => state.value?.link)
+
+function tabDot(id: Tab): string {
+  if (id === 'decks') return online.value ? (anyPlaying.value ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-400') : 'bg-amber-400'
+  if (id === 'link') {
+    if (!link.value || link.value.mode === 'OFF') return 'bg-slate-300 dark:bg-slate-600'
+    return link.value.connected ? 'bg-purple-400 animate-pulse' : 'bg-amber-400'
+  }
+  return 'bg-slate-300 dark:bg-slate-600'
+}
 </script>
 
 <template>
-  <div class="app">
-    <header class="top">
-      <h1>plmux</h1>
-      <span v-if="state?.demo" class="demo" title="PLMUX_DEMO=true: ダミーデータを表示中">DEMO</span>
-      <span class="status" :class="{ ok: connected && state?.djLinkOnline }">
-        <span class="dot"></span>{{ statusLabel }}
-      </span>
-      <div class="master" v-if="state?.masterPlayer">
-        <span class="muted">MASTER</span>
-        <strong class="num">{{ state.masterBpm.toFixed(1) }}</strong>
-        <span class="muted">BPM · DECK {{ state.masterPlayer }}</span>
+  <div class="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
+    <!-- Top Navigation Bar (moip-toolkit と同じ構成) -->
+    <header class="border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/80 backdrop-blur px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-30 shadow-sm">
+      <a href="/" class="flex items-center gap-4 py-0.5">
+        <img src="/logo.svg" alt="TechnoTUT" class="h-10 sm:h-12 w-auto max-w-[200px] object-contain dark:hidden" />
+        <img src="/logo_dark.svg" alt="TechnoTUT" class="h-10 sm:h-12 w-auto max-w-[200px] object-contain hidden dark:block" />
+        <div class="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
+        <div>
+          <h1 class="text-base font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <span>plmux</span>
+            <span v-if="state?.demo" class="text-[10px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800" title="PLMUX_DEMO=true: ダミーデータを表示中">DEMO</span>
+          </h1>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">Pro DJ Link Monitor</p>
+        </div>
+      </a>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <!-- Tab Switcher -->
+        <nav class="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
+          <button
+            v-for="t in tabs"
+            :key="t.id"
+            @click="activeTab = t.id"
+            :class="[
+              'px-3 sm:px-5 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2',
+              activeTab === t.id
+                ? 'bg-brand text-white shadow-md shadow-brand/20'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100',
+            ]"
+          >
+            <span>{{ t.label }}</span>
+            <span class="h-2 w-2 rounded-full" :class="tabDot(t.id)" />
+          </button>
+        </nav>
+
+        <!-- Live badges (固定幅 + tabular-nums でガタつき防止) -->
+        <div class="hidden md:flex items-center gap-2 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-mono select-none">
+          <div class="flex items-center gap-1.5">
+            <span class="text-slate-400 font-sans font-semibold text-[10px] uppercase">Master</span>
+            <span class="w-[46px] text-right font-bold tabular-nums text-amber-500">
+              {{ state?.masterPlayer ? state.masterBpm.toFixed(1) : '--.-' }}
+            </span>
+            <span class="text-slate-400 w-[14px]">{{ state?.masterPlayer ?? '' }}</span>
+          </div>
+          <div class="w-px h-3 bg-slate-300 dark:bg-slate-700"></div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-slate-400 font-sans font-semibold text-[10px] uppercase">Link</span>
+            <span class="w-[46px] text-right font-bold tabular-nums" :class="link?.connected ? 'text-purple-500' : 'text-slate-400'">
+              {{ link?.connected ? link.bpm.toFixed(1) : '--.-' }}
+            </span>
+          </div>
+          <div class="w-px h-3 bg-slate-300 dark:bg-slate-700"></div>
+          <div class="flex items-center gap-1.5">
+            <span class="h-2 w-2 rounded-full" :class="online ? 'bg-emerald-500' : connected ? 'bg-amber-400 animate-pulse' : 'bg-rose-500 animate-pulse'" />
+            <span class="font-sans font-semibold text-[10px] uppercase" :class="online ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'">
+              {{ online ? 'Online' : connected ? 'Searching' : 'Offline' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button
+          @click="toggle"
+          class="p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+          title="Toggle Light / Dark Mode"
+        >
+          <svg v-if="dark" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+          </svg>
+        </button>
       </div>
     </header>
 
-    <div v-for="w in state?.warnings ?? []" :key="w" class="warning">⚠ {{ w }}</div>
+    <main class="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full space-y-6">
+      <!-- Warnings -->
+      <div
+        v-for="w in state?.warnings ?? []"
+        :key="w"
+        class="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 rounded-2xl px-5 py-3 text-sm"
+      >
+        <span class="font-bold">!</span><span>{{ w }}</span>
+      </div>
+      <div v-if="!connected" class="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 text-rose-700 dark:text-rose-400 rounded-2xl px-5 py-3 text-sm">
+        サーバーとの接続が切れました。再接続しています…
+      </div>
 
-    <main>
-      <section class="players">
-        <PlayerCard v-for="p in state?.players ?? []" :key="p.number" :player="p" />
-        <div v-if="state && state.players.length === 0" class="no-players panel muted">
-          プレイヤーが見つかりません。XDJ-AZ / CDJ が同じネットワークにあり、Pro DJ Link (LINK) が有効か確認してください。
+      <!-- ==================== TAB: Decks ==================== -->
+      <div v-show="activeTab === 'decks'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 content-start">
+          <PlayerCard v-for="p in state?.players ?? []" :key="p.number" :player="p" />
+          <div v-if="state && state.players.length === 0" class="card md:col-span-2 text-center py-16 space-y-2">
+            <p class="font-semibold text-slate-700 dark:text-slate-200">プレイヤーが見つかりません</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+              XDJ-AZ / CDJ が同じネットワークにあり、Pro DJ Link (LINK) が有効か確認してください。
+            </p>
+          </div>
         </div>
-      </section>
+        <div class="space-y-6">
+          <StatusPanel :state="state" :connected="connected" />
+          <RecentTracks @show-all="activeTab = 'history'" />
+        </div>
+      </div>
 
-      <aside class="side">
-        <LinkPanel :status="state?.link ?? null" />
-        <HistoryPanel />
-        <section v-if="state?.otherDevices.length" class="panel">
-          <h2>その他の機器</h2>
-          <ul class="devices">
-            <li v-for="d in state.otherDevices" :key="d.number">
-              <span class="num">#{{ d.number }}</span> {{ d.name }} <span class="muted">{{ d.address }}</span>
-            </li>
-          </ul>
-        </section>
-      </aside>
+      <!-- ==================== TAB: History ==================== -->
+      <HistoryPanel v-show="activeTab === 'history'" />
+
+      <!-- ==================== TAB: Ableton Link ==================== -->
+      <LinkPanel v-show="activeTab === 'link'" :status="state?.link ?? null" />
     </main>
   </div>
 </template>
-
-<style scoped>
-.app { max-width: 1440px; margin: 0 auto; padding: 16px; }
-.top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
-h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.02em; }
-.demo {
-  font-size: 11px; font-weight: 800; letter-spacing: 0.08em; padding: 2px 8px; border-radius: 4px;
-  background: var(--sync); color: #14003a;
-}
-.status { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--master); }
-.status.ok .dot { background: var(--play); }
-.master { margin-left: auto; display: flex; align-items: baseline; gap: 6px; font-size: 13px; }
-.master strong { font-size: 26px; color: var(--master); }
-.warning {
-  background: color-mix(in srgb, var(--master) 15%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--master) 50%, var(--border));
-  border-radius: var(--radius); padding: 10px 14px; margin-bottom: 12px; font-size: 14px;
-}
-main { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 16px; align-items: start; }
-.players { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
-.no-players { grid-column: 1 / -1; text-align: center; padding: 40px 16px; }
-.side { display: flex; flex-direction: column; gap: 16px; }
-.devices { list-style: none; margin: 0; padding: 0; font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
-@media (max-width: 960px) {
-  main { grid-template-columns: minmax(0, 1fr); }
-  .players { grid-template-columns: minmax(0, 1fr); }
-}
-</style>

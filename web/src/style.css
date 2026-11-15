@@ -1,84 +1,56 @@
-:root {
-  --bg: #0e0f12;
-  --surface: #17191e;
-  --surface-2: #1f2228;
-  --border: #2a2e36;
-  --text: #e8eaee;
-  --muted: #8a909c;
-  --accent: #4fb3ff;
-  --play: #3ddc84;
-  --onair: #ff4d5e;
-  --master: #ffb020;
-  --sync: #a78bfa;
-  --radius: 10px;
-  color-scheme: dark;
-  font-family: 'Inter', 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
-  font-size: 15px;
+@import "tailwindcss";
+
+/* moip-toolkit と同じく .dark クラスでダークモードを切り替える */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* TechnoTUT ブランドカラー (moip-toolkit の nuxt.config.ts と同じ値) */
+  --color-brand: #C7000A;
+  --color-brand-hover: #b00009;
+  --color-brand-light: #e61e29;
+  --color-brand-dim: #590509;
+  --font-sans: "Inter", "Hiragino Sans", "Noto Sans JP", ui-sans-serif, system-ui, sans-serif;
 }
 
-* { box-sizing: border-box; }
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
 
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  -webkit-font-smoothing: antialiased;
+/* moip-toolkit の共通パーツ */
+@layer components {
+  .card {
+    @apply bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm;
+  }
+  .card-title {
+    @apply text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider;
+  }
+  .btn {
+    @apply py-2 px-4 rounded-xl font-medium text-sm transition border border-slate-200 dark:border-slate-700
+      bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800
+      disabled:opacity-40 disabled:cursor-default;
+  }
+  .btn-primary {
+    @apply py-2 px-4 rounded-xl font-semibold text-sm transition bg-brand hover:bg-brand-hover text-white
+      shadow-md shadow-brand/20 disabled:opacity-40 disabled:cursor-default;
+  }
+  .btn-danger {
+    @apply py-2 px-4 rounded-xl font-medium text-sm transition bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100
+      dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60;
+  }
+  .input {
+    @apply w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2
+      text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-brand;
+  }
+  .checkbox {
+    @apply rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700 accent-brand h-4 w-4;
+  }
+  .pill {
+    @apply px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border;
+  }
+  .pill-ok { @apply bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800; }
+  .pill-warn { @apply bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800; }
+  .pill-off { @apply bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-transparent; }
+  .pill-live { @apply bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800; }
+  .kv { @apply flex justify-between gap-3 text-sm; }
+  .kv > :first-child { @apply text-slate-500 dark:text-slate-400; }
+  .kv > :last-child { @apply text-slate-900 dark:text-slate-100 font-mono font-medium tabular-nums truncate; }
 }
-
-button, input, select {
-  font: inherit;
-  color: inherit;
-}
-
-button {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 12px;
-  cursor: pointer;
-}
-button:hover:not(:disabled) { border-color: var(--accent); }
-button:disabled { opacity: 0.4; cursor: default; }
-button.primary { background: var(--accent); border-color: var(--accent); color: #001629; font-weight: 600; }
-button.danger:hover:not(:disabled) { border-color: var(--onair); color: var(--onair); }
-
-input, select {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 10px;
-}
-input:focus, select:focus { outline: none; border-color: var(--accent); }
-
-.panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-}
-.panel h2 {
-  margin: 0 0 12px;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.badge {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  color: var(--muted);
-}
-.badge.on.play { background: var(--play); border-color: var(--play); color: #00210f; }
-.badge.on.onair { background: var(--onair); border-color: var(--onair); color: #2b0005; }
-.badge.on.master { background: var(--master); border-color: var(--master); color: #2a1a00; }
-.badge.on.sync { background: var(--sync); border-color: var(--sync); color: #14003a; }
-
-.muted { color: var(--muted); }
-.num { font-variant-numeric: tabular-nums; }
