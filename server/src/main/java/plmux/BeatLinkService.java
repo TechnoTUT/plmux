@@ -221,11 +221,11 @@ public final class BeatLinkService implements PlayerSource {
 
         Long since = xdjAzNotLinkSince;
         if (since != null && System.currentTimeMillis() - since > 5000) {
-            warnings.add("XDJ-AZ が Pro DJ Link モードになっていない可能性があります。"
-                    + "本体の LINK 設定 (Pro DJ Link) を確認してください。");
+            warnings.add("The XDJ-AZ does not seem to be in Pro DJ Link mode. "
+                    + "Check its LINK setting (Pro DJ Link).");
         }
         if (!online && !devices.isEmpty()) {
-            warnings.add("DJ Link 機器は見えていますが、Virtual CDJ を起動できていません。ネットワーク設定を確認してください。");
+            warnings.add("DJ Link devices are visible, but the Virtual CDJ could not start. Check the network settings.");
         }
 
         return new Model.State(false, online, master, masterBpm, players, others, warnings, link);

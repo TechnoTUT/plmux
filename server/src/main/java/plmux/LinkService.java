@@ -185,8 +185,8 @@ public final class LinkService {
         } catch (IOException first) {
             Runner runner = Runner.getInstance();
             if (!allowEmbedded || !runner.canRunCarabiner()) {
-                throw new IOException("Carabiner がポート " + port + " で見つかりません"
-                        + (allowEmbedded ? " (この環境では同梱バイナリを実行できません)" : ""), first);
+                throw new IOException("Carabiner is not running on port " + port
+                        + (allowEmbedded ? " (and the bundled binary cannot run on this platform)" : ""), first);
             }
             log.info("Starting embedded Carabiner ({}) on port {}", runner.getExecutableName(), port);
             runner.setPort(port);
@@ -200,7 +200,7 @@ public final class LinkService {
                     sleepQuietly(10);
                 }
             }
-            if (s == null) throw new IOException("同梱 Carabiner に接続できませんでした");
+            if (s == null) throw new IOException("Unable to connect to the bundled Carabiner");
         }
         s.setSoTimeout(READ_TIMEOUT_MS);
         socket = s;
@@ -270,7 +270,7 @@ public final class LinkService {
             } catch (SocketTimeoutException e) {
                 n = 0;
             }
-            if (n < 0) throw new IOException("Carabiner が接続を閉じました");
+            if (n < 0) throw new IOException("Carabiner closed the connection");
             if (n > 0) {
                 pending.append(new String(buf, 0, n, StandardCharsets.UTF_8));
                 for (CarabinerMessage m; (m = CarabinerMessage.next(pending)) != null; ) {

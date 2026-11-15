@@ -75,7 +75,7 @@ public final class Main {
         Javalin app = createApp();
         app.start(config.httpPort());
 
-        if (config.demo()) log.warn("DEMO MODE: DJ Link には接続せず、ダミーデータを配信します");
+        if (config.demo()) log.warn("DEMO MODE: not connecting to DJ Link, serving dummy data");
         source.start();
         link.start();
         pusher.scheduleAtFixedRate(this::pushState, PUSH_INTERVAL_MS, PUSH_INTERVAL_MS, TimeUnit.MILLISECONDS);
