@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import type { Player } from '../types'
 import { api } from '../api'
 import { formatDuration, formatPitch } from '../format'
 import { useLive } from '../composables/useLive'
+import { useWaveform } from '../composables/useWaveform'
+import { Playhead } from '../playhead'
+import WaveformDetail from './WaveformDetail.vue'
+import WaveformPreview from './WaveformPreview.vue'
 
 const props = defineProps<{ player: Player }>()
 const { lastBeat } = useLive()
@@ -23,6 +27,14 @@ const flashing = computed(() => props.player.playing && !!beatInfo.value && now.
 const currentBeat = computed(() => beatInfo.value?.beatWithinBar || props.player.beatWithinBar)
 
 const track = computed(() => props.player.track)
+
+const waveform = useWaveform(() => props.player.number, () => props.player.track?.waveformKey)
+const playhead = new Playhead()
+watch(
+  () => props.player,
+  (p) => playhead.update(p.track ? p.positionMs : -1, p.playing, 1 + p.pitchPercent / 100),
+  { immediate: true },
+)
 const progress = computed(() => {
   const d = track.value?.durationSec
   return d ? Math.min(100, (props.player.positionMs / 1000 / d) * 100) : 0
@@ -71,6 +83,9 @@ const flags = computed(() => [
       </div>
     </div>
 
+    <!-- Detail waveform -->
+    <WaveformDetail v-if="player.trackLoaded" :waveform="waveform" :playhead="playhead" />
+
     <!-- Track -->
     <div class="flex gap-4 min-w-0">
       <div class="h-20 w-20 flex-none rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800">
@@ -115,7 +130,13 @@ const flags = computed(() => [
 
     <!-- Progress -->
     <div class="space-y-1">
-      <div class="h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+      <WaveformPreview
+        v-if="waveform?.preview"
+        :waveform="waveform"
+        :playhead="playhead"
+        :duration-ms="(track?.durationSec ?? 0) * 1000"
+      />
+      <div v-else class="h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
         <div
           class="h-full rounded-full transition-[width] duration-200 ease-linear"
           :class="player.onAir ? 'bg-brand' : 'bg-slate-400 dark:bg-slate-500'"
