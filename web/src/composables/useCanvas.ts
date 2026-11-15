@@ -8,6 +8,7 @@ export function useCanvas(canvas: Ref<HTMLCanvasElement | null>) {
   const ctx = shallowRef<CanvasRenderingContext2D | null>(null)
   const size = ref({ width: 1, height: 1, dpr: 1 })
   let observer: ResizeObserver | undefined
+  let stopFallback: (() => void) | undefined
 
   function resize() {
     const el = canvas.value
@@ -27,10 +28,23 @@ export function useCanvas(canvas: Ref<HTMLCanvasElement | null>) {
     if (!el) return
     ctx.value = el.getContext('2d')
     resize()
-    observer = new ResizeObserver(resize)
-    observer.observe(el)
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(resize)
+      observer.observe(el)
+    } else {
+      // ResizeObserver がない古いブラウザ (Safari 13.1 未満、iOS 12 など) では画面サイズの変化だけ追う
+      window.addEventListener('resize', resize)
+      window.addEventListener('orientationchange', resize)
+      stopFallback = () => {
+        window.removeEventListener('resize', resize)
+        window.removeEventListener('orientationchange', resize)
+      }
+    }
   })
-  onUnmounted(() => observer?.disconnect())
+  onUnmounted(() => {
+    observer?.disconnect()
+    stopFallback?.()
+  })
 
   return { ctx, size }
 }
