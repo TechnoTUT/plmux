@@ -114,6 +114,19 @@ docker run --network host -v plmux-data:/data plmux
 - The GUI has no authentication yet. Keep it on the booth LAN or put authentication in front of it at the Ingress.
 - `.github/workflows/image.yml` builds the image and pushes it to `ghcr.io/<owner>/<repo>`.
 
+## Releases
+
+Push a tag that starts with `v` to publish a release:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+- `.github/workflows/release.yml` builds the web GUI and server, runs the tests, and creates a GitHub Release with
+  `plmux-server-<tag>.jar` attached and generated release notes. Tags with a hyphen (e.g. `v1.0.0-rc.1`) become pre-releases.
+- `.github/workflows/image.yml` pushes the container image `ghcr.io/technotut/plmux:<version>` (without the `v`) for the same tag.
+
 ## Updating beat-link
 
 ```bash
