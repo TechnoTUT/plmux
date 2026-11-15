@@ -127,4 +127,3 @@ git add vendor pom.xml && git commit -m "Update beat-link"
 
 Eclipse Public License 2.0, matching Beat Link Trigger.
 The Ableton Link follow logic is a Java port of [beat-carabiner](https://github.com/Deep-Symmetry/beat-carabiner).
-The TechnoTUT logos in `web/public/` come from [TechnoTUT/moip-toolkit](https://github.com/TechnoTUT/moip-toolkit) (MIT).
