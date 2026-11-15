@@ -276,7 +276,7 @@ public final class DemoSource implements PlayerSource {
             } * Math.exp(-off * 14);
             low[f] = Math.min(31, kickEnv + bass + rnd.nextDouble() * 2);
             mid[f] = Math.min(31, Math.max(0, pad + rnd.nextGaussian() * 1.5));
-            high[f] = Math.min(31, hat + rnd.nextDouble() * 2.5);
+            high[f] = hat > 1.5 ? Math.min(31, hat + rnd.nextDouble() * 2) : 0;
         }
 
         int stride = style.equals("THREE_BAND") ? 3 : 4;
@@ -312,9 +312,9 @@ public final class DemoSource implements PlayerSource {
             int at = i * pStride;
             switch (style) {
                 case "THREE_BAND" -> {
-                    preview[at] = (byte) Math.round(l * 0.55);
-                    preview[at + 1] = (byte) Math.round((l + m) * 0.55);
-                    preview[at + 2] = (byte) Math.round(Math.min(31, (l + m + h) * 0.55));
+                    preview[at] = (byte) Math.round(Math.min(31, l * 0.9));
+                    preview[at + 1] = (byte) Math.round(Math.min(31, (l + m) * 0.9));
+                    preview[at + 2] = (byte) Math.round(Math.min(31, (l + m + h) * 0.9));
                 }
                 case "RGB" -> {
                     int[] c = rgbFor(l, m, h);
