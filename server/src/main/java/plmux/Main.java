@@ -76,6 +76,7 @@ public final class Main {
             style = "THREE_BAND";
         }
         source.setWaveformStyle(style);
+        link.setMode(linkStartupMode());
         source.onChange(() -> dirty.set(true));
         link.onChange(() -> dirty.set(true));
         source.onBeat(beat -> broadcast("beat", beat));
@@ -206,6 +207,14 @@ public final class Main {
                 settings.put("waveformStyle", s);
                 source.setWaveformStyle(s);
             }
+            if (u.linkStartupMode() != null) {
+                try {
+                    LinkService.Mode m = LinkService.Mode.valueOf(u.linkStartupMode().toUpperCase());
+                    settings.put("linkStartupMode", m.name());
+                } catch (IllegalArgumentException e) {
+                    throw new BadRequestResponse("linkStartupMode must be one of OFF, MONITOR, FOLLOW");
+                }
+            }
             ctx.json(settingsBody());
         });
 
@@ -240,11 +249,23 @@ public final class Main {
 
     record SessionCreate(String name) {}
 
-    record SettingsUpdate(String waveformStyle) {}
+    record SettingsUpdate(String waveformStyle, String linkStartupMode) {}
 
     private Map<String, Object> settingsBody() throws SQLException {
         return Map.of("waveformStyle", settings.get("waveformStyle", config.waveformStyle()),
-                "waveformStyles", WAVEFORM_STYLES);
+                "waveformStyles", WAVEFORM_STYLES,
+                "linkStartupMode", linkStartupMode().name());
+    }
+
+    /** 起動時に適用する Link モード。GUI で保存した値があればそれを、なければ PLMUX_LINK_MODE を使う。 */
+    private LinkService.Mode linkStartupMode() throws SQLException {
+        String saved = settings.get("linkStartupMode", config.linkMode().name());
+        try {
+            return LinkService.Mode.valueOf(saved);
+        } catch (IllegalArgumentException e) {
+            log.warn("Unknown saved Link startup mode {}, using {}", saved, config.linkMode());
+            return config.linkMode();
+        }
     }
 
     private Map<String, Object> linkSettings() {
