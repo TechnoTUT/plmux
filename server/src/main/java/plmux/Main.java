@@ -53,7 +53,7 @@ public final class Main {
 
     private Main(Config config) throws Exception {
         this.config = config;
-        this.source = new BeatLinkService(config);
+        this.source = config.demo() ? new DemoSource() : new BeatLinkService(config);
         this.link = new LinkService(config, org.deepsymmetry.beatlink.VirtualCdj.getInstance());
         this.history = new HistoryService(config.dataDir(), config.historyMinPlaySeconds(),
                 config.historyRequireOnAir());
@@ -75,6 +75,7 @@ public final class Main {
         Javalin app = createApp();
         app.start(config.httpPort());
 
+        if (config.demo()) log.warn("DEMO MODE: DJ Link には接続せず、ダミーデータを配信します");
         source.start();
         link.start();
         pusher.scheduleAtFixedRate(this::pushState, PUSH_INTERVAL_MS, PUSH_INTERVAL_MS, TimeUnit.MILLISECONDS);

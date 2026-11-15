@@ -16,7 +16,8 @@ public record Config(
         boolean carabinerEmbedded,
         LinkService.Mode linkMode,
         int linkLatencyMs,
-        boolean linkAlignBars) {
+        boolean linkAlignBars,
+        boolean demo) {
 
     public static Config fromEnv() {
         return new Config(
@@ -30,7 +31,8 @@ public record Config(
                 boolEnv("PLMUX_CARABINER_EMBEDDED", true),
                 LinkService.Mode.valueOf(env("PLMUX_LINK_MODE", "OFF").toUpperCase()),
                 intEnv("PLMUX_LINK_LATENCY_MS", 1),
-                boolEnv("PLMUX_LINK_ALIGN_BARS", true));
+                boolEnv("PLMUX_LINK_ALIGN_BARS", true),
+                boolEnv("PLMUX_DEMO", false));
     }
 
     private static String env(String key, String def) {

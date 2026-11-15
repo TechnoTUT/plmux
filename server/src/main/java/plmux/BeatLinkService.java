@@ -228,7 +228,7 @@ public final class BeatLinkService implements PlayerSource {
             warnings.add("DJ Link 機器は見えていますが、Virtual CDJ を起動できていません。ネットワーク設定を確認してください。");
         }
 
-        return new Model.State(online, master, masterBpm, players, others, warnings, link);
+        return new Model.State(false, online, master, masterBpm, players, others, warnings, link);
     }
 
     private static DeviceAnnouncement ownerOf(CdjStatus s, Map<Integer, DeviceAnnouncement> devices) {

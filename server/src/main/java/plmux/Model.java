@@ -47,6 +47,7 @@ public final class Model {
             String error) {}
 
     public record State(
+            boolean demo,
             boolean djLinkOnline,
             Integer masterPlayer,
             double masterBpm,
