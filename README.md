@@ -55,9 +55,12 @@ GUI URL options: `#history` / `#link` / `#settings` open a specific tab, `?theme
 ### OBS overlay
 
 Add a **Browser** source in OBS with the URL `http://<server>:8080/overlay` and a size of 1920×1080.
-It shows the title, artist and artwork of the track on the tempo master deck, and keeps showing the last
-track when no deck is master. Theme, corner position, artwork and "hide when the master deck is stopped" are
-set in the GUI's Settings tab (with a live preview) and apply to open overlays immediately.
+It shows the title, artist, artwork and optional tags (album, genre, key, BPM) of the track on the tempo master
+deck, and keeps showing the last track when no deck is master. The look follows the Track List theme of
+[prolink-tools](https://prolink.tools/): no card, just a translucent band behind each line.
+Theme, corner position (right corners are right-aligned), artwork, band opacity (0% = fully transparent),
+tags and "hide when the master deck is stopped" are set in the GUI's Settings tab (with a live preview) and
+apply to open overlays immediately.
 With the Vite dev server, open `/overlay.html` instead.
 
 ### Container
@@ -129,7 +132,7 @@ git add vendor pom.xml && git commit -m "Update beat-link"
 | GET | `/api/players/{n}/artwork` | Artwork image |
 | GET | `/api/players/{n}/waveform` | Waveform preview/detail, beat grid and cue points (see `Model.Waveform`) |
 | GET / PUT | `/api/link` | Link settings `{mode, latencyMs, alignBars}` |
-| GET / PUT | `/api/settings` | GUI settings `{waveformStyle, linkStartupMode, overlay: {theme, position, showArtwork, hideWhenIdle}}` (saved in `plmux.db`) |
+| GET / PUT | `/api/settings` | GUI settings `{waveformStyle, linkStartupMode, overlay: {theme, position, showArtwork, hideWhenIdle, backgroundOpacity, tags}}` (saved in `plmux.db`) |
 | GET / POST | `/api/sessions` | List sessions / start one `{name}` |
 | POST | `/api/sessions/end` | End the running session |
 | GET | `/api/history?session=current\|all\|{id}` | Track history |
