@@ -1,0 +1,48 @@
+name: ci
+
+# main への push と pull request で、Web GUI の型チェック・ビルドとサーバーのテストを実行する。
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      # npm run build は vue-tsc による型チェックを含む
+      - name: Type-check and build
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      # beat-link / crate-digger (submodule) はビルドだけして、テストは plmux のものだけ実行する
+      - name: Test
+        run: >
+          ./mvnw -B verify -pl server -am
+          -Dtest='plmux.**' -Dsurefire.failIfNoSpecifiedTests=false
