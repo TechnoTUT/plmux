@@ -5,6 +5,7 @@ A headless server + web GUI that brings the parts of
 Built primarily for the **Pioneer DJ XDJ-AZ**.
 
 - **Player status** — BPM, pitch, beat, Play / On-Air / Master / Sync, title, artist, artwork and playback position for every deck
+- **Waveforms** — CDJ-style scrolling waveform and whole-track overview with beat grid, hot cues, memory points and loops (RGB, three-band and blue styles)
 - **Track history** — automatically logs tracks that have been playing On-Air for a while (15 s by default), grouped into sessions (events), exportable as CSV
 - **Ableton Link** — monitor a Link session, or make Link follow the tempo and beat grid of the CDJ tempo master (via Carabiner)
 
@@ -72,6 +73,7 @@ docker run --network host -v plmux-data:/data plmux
 | `PLMUX_LINK_MODE` | `OFF` | Initial Link mode: `OFF` / `MONITOR` / `FOLLOW` (can be changed from the GUI) |
 | `PLMUX_LINK_LATENCY_MS` | `1` | Latency compensation for beat packets |
 | `PLMUX_LINK_ALIGN_BARS` | `true` | Align bars, not just beats |
+| `PLMUX_WAVEFORM_STYLE` | `RGB` | Preferred waveform style: `RGB` / `THREE_BAND` / `BLUE` (falls back if the player cannot provide it) |
 | `PLMUX_CARABINER_PORT` | `17000` | Carabiner port |
 | `PLMUX_CARABINER_EMBEDDED` | `true` | Launch the bundled Carabiner binary if none is running |
 | `PLMUX_DEMO` | `false` | Serve dummy data instead of connecting to DJ Link (for GUI testing) |
@@ -115,6 +117,7 @@ git add vendor pom.xml && git commit -m "Update beat-link"
 | WS | `/ws` | Pushes `state` (up to 10 Hz), `beat` and `history` (new entry) messages |
 | GET | `/api/state` | Current state |
 | GET | `/api/players/{n}/artwork` | Artwork image |
+| GET | `/api/players/{n}/waveform` | Waveform preview/detail, beat grid and cue points (see `Model.Waveform`) |
 | GET / PUT | `/api/link` | Link settings `{mode, latencyMs, alignBars}` |
 | GET / POST | `/api/sessions` | List sessions / start one `{name}` |
 | POST | `/api/sessions/end` | End the running session |
