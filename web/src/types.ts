@@ -103,6 +103,17 @@ export interface Settings {
   waveformStyle: WaveformStyle
   waveformStyles: WaveformStyle[]
   linkStartupMode: LinkMode
+  overlay: OverlaySettings
+}
+
+export type OverlayPosition = 'TOP_LEFT' | 'TOP_RIGHT' | 'BOTTOM_LEFT' | 'BOTTOM_RIGHT'
+
+/** OBS 用オーバーレイ (/overlay) の見た目 (server/src/main/java/plmux/OverlaySettings.java) */
+export interface OverlaySettings {
+  theme: 'DARK' | 'LIGHT'
+  position: OverlayPosition
+  showArtwork: boolean
+  hideWhenIdle: boolean
 }
 
 /** hotCue が 0 ならメモリーポイント、endMs があればループ */

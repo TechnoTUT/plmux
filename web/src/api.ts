@@ -1,4 +1,4 @@
-import type { HistoryEntry, LinkMode, LinkSettings, Session, Settings, WaveformResponse, WaveformStyle } from './types'
+import type { HistoryEntry, LinkMode, LinkSettings, OverlaySettings, Session, Settings, WaveformResponse, WaveformStyle } from './types'
 
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
@@ -10,13 +10,19 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
   return res.status === 204 ? (undefined as T) : ((await res.json()) as T)
 }
 
+export interface SettingsPatch {
+  waveformStyle?: WaveformStyle
+  linkStartupMode?: LinkMode
+  overlay?: Partial<OverlaySettings>
+}
+
 export const api = {
   getLink: () => request<LinkSettings>('GET', '/api/link'),
   updateLink: (patch: { mode?: LinkMode; latencyMs?: number; alignBars?: boolean }) =>
     request<LinkSettings>('PUT', '/api/link', patch),
 
   getSettings: () => request<Settings>('GET', '/api/settings'),
-  updateSettings: (patch: { waveformStyle?: WaveformStyle; linkStartupMode?: LinkMode }) => request<Settings>('PUT', '/api/settings', patch),
+  updateSettings: (patch: SettingsPatch) => request<Settings>('PUT', '/api/settings', patch),
 
   getSessions: () => request<{ current: number | null; sessions: Session[] }>('GET', '/api/sessions'),
   startSession: (name: string) => request<Session>('POST', '/api/sessions', { name }),

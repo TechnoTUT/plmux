@@ -1,5 +1,5 @@
 import { reactive, ref } from 'vue'
-import type { BeatEvent, HistoryEntry, State } from '../types'
+import type { BeatEvent, HistoryEntry, Settings, State } from '../types'
 
 /**
  * サーバーの WebSocket (/ws) に接続し、状態をリアクティブに保持する。切断時は自動で再接続する。
@@ -10,6 +10,7 @@ const connected = ref(false)
 /** プレイヤー番号 → 最後に拍を受け取った時刻 (アニメーション用) */
 const lastBeat = reactive<Record<number, { at: number; beatWithinBar: number }>>({})
 const historyListeners = new Set<(e: HistoryEntry) => void>()
+const settingsListeners = new Set<(s: Settings) => void>()
 let started = false
 
 function connect() {
@@ -34,6 +35,9 @@ function connect() {
       case 'history':
         historyListeners.forEach((l) => l(msg.data as HistoryEntry))
         break
+      case 'settings':
+        settingsListeners.forEach((l) => l(msg.data as Settings))
+        break
     }
   }
 }
@@ -50,6 +54,11 @@ export function useLive() {
     onHistory(listener: (e: HistoryEntry) => void) {
       historyListeners.add(listener)
       return () => historyListeners.delete(listener)
+    },
+    /** Settings が変更されたとき (どのクライアントからの変更でも) に呼ばれる */
+    onSettings(listener: (s: Settings) => void) {
+      settingsListeners.add(listener)
+      return () => settingsListeners.delete(listener)
     },
   }
 }
