@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import type { OverlaySettings, Track } from '../types'
 import { api } from '../api'
 import { useLive } from '../composables/useLive'
+import MarqueeText from './MarqueeText.vue'
 
 /**
  * OBS のブラウザソース用 Now Playing オーバーレイ。テンポマスターのデッキの曲を表示する。
@@ -83,10 +84,12 @@ const dark = computed(() => settings.value.theme === 'DARK')
         </div>
         <div class="min-w-0 flex-1 border-l-[6px] border-brand pl-6 py-1">
           <p class="text-base font-bold uppercase tracking-[0.25em] text-brand-light">Now Playing</p>
-          <p class="text-4xl font-bold leading-tight truncate mt-1">{{ shown.track.title || 'Unknown Title' }}</p>
-          <p class="text-2xl truncate mt-1" :class="dark ? 'text-slate-300' : 'text-slate-600'">
-            {{ shown.track.artist || 'Unknown Artist' }}
-          </p>
+          <MarqueeText class="text-4xl font-bold leading-tight mt-1" :text="shown.track.title || 'Unknown Title'" />
+          <MarqueeText
+            class="text-2xl mt-1"
+            :class="dark ? 'text-slate-300' : 'text-slate-600'"
+            :text="shown.track.artist || 'Unknown Artist'"
+          />
         </div>
       </div>
     </Transition>
