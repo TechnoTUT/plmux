@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import type { WaveformStyle } from '../types'
+import type { LinkMode, WaveformStyle } from '../types'
 import { api } from '../api'
 
 const waveformStyle = ref<WaveformStyle | null>(null)
+const linkStartupMode = ref<LinkMode | null>(null)
 const busy = ref(false)
 const error = ref<string | null>(null)
 
@@ -28,19 +29,29 @@ const styles: { value: WaveformStyle; label: string; help: string; swatch: strin
   },
 ]
 
+const linkModes: { value: LinkMode; label: string; help: string }[] = [
+  { value: 'OFF', label: 'Off', help: 'Link stays disabled until it is turned on in the Link tab.' },
+  { value: 'MONITOR', label: 'Monitor', help: 'Connect to Carabiner and show the Link session tempo and peers.' },
+  { value: 'FOLLOW', label: 'Follow', help: 'Make the Link session follow the DJ Link tempo master right away.' },
+]
+
 onMounted(async () => {
   try {
-    waveformStyle.value = (await api.getSettings()).waveformStyle
+    const s = await api.getSettings()
+    waveformStyle.value = s.waveformStyle
+    linkStartupMode.value = s.linkStartupMode
   } catch (e) {
     error.value = String(e)
   }
 })
 
-async function setStyle(style: WaveformStyle) {
+async function update(patch: { waveformStyle?: WaveformStyle; linkStartupMode?: LinkMode }) {
   busy.value = true
   error.value = null
   try {
-    waveformStyle.value = (await api.updateSettings({ waveformStyle: style })).waveformStyle
+    const s = await api.updateSettings(patch)
+    waveformStyle.value = s.waveformStyle
+    linkStartupMode.value = s.linkStartupMode
   } catch (e) {
     error.value = String(e)
   } finally {
@@ -67,7 +78,7 @@ async function setStyle(style: WaveformStyle) {
           :class="waveformStyle === s.value
             ? 'border-brand bg-rose-50/60 dark:bg-brand-dim/20'
             : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'"
-          @click="setStyle(s.value)"
+          @click="update({ waveformStyle: s.value })"
         >
           <div class="flex items-center gap-3">
             <span
@@ -85,6 +96,38 @@ async function setStyle(style: WaveformStyle) {
         </button>
       </div>
       <p v-if="error" class="text-sm text-rose-600">{{ error }}</p>
+    </section>
+
+    <section class="card lg:col-span-2 space-y-4">
+      <div>
+        <h2 class="card-title">Ableton Link on Startup</h2>
+        <p class="text-xs text-slate-400 mt-1">
+          Link mode applied when the server starts. Saved on the server; takes effect on the next restart.
+        </p>
+      </div>
+      <div class="grid gap-3">
+        <button
+          v-for="m in linkModes"
+          :key="m.value"
+          :disabled="busy"
+          class="text-left p-4 rounded-2xl border-2 transition disabled:opacity-60"
+          :class="linkStartupMode === m.value
+            ? 'border-brand bg-rose-50/60 dark:bg-brand-dim/20'
+            : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'"
+          @click="update({ linkStartupMode: m.value })"
+        >
+          <div class="flex items-center gap-3">
+            <span
+              class="h-4 w-4 rounded-full border-2 grid place-items-center flex-none"
+              :class="linkStartupMode === m.value ? 'border-brand' : 'border-slate-300 dark:border-slate-600'"
+            >
+              <span v-if="linkStartupMode === m.value" class="h-2 w-2 rounded-full bg-brand" />
+            </span>
+            <span class="font-semibold text-slate-900 dark:text-slate-100">{{ m.label }}</span>
+          </div>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 ml-7">{{ m.help }}</p>
+        </button>
+      </div>
     </section>
   </div>
 </template>

@@ -102,6 +102,7 @@ export type WaveformStyle = 'BLUE' | 'RGB' | 'THREE_BAND'
 export interface Settings {
   waveformStyle: WaveformStyle
   waveformStyles: WaveformStyle[]
+  linkStartupMode: LinkMode
 }
 
 /** hotCue が 0 ならメモリーポイント、endMs があればループ */

@@ -16,7 +16,7 @@ export const api = {
     request<LinkSettings>('PUT', '/api/link', patch),
 
   getSettings: () => request<Settings>('GET', '/api/settings'),
-  updateSettings: (patch: { waveformStyle?: WaveformStyle }) => request<Settings>('PUT', '/api/settings', patch),
+  updateSettings: (patch: { waveformStyle?: WaveformStyle; linkStartupMode?: LinkMode }) => request<Settings>('PUT', '/api/settings', patch),
 
   getSessions: () => request<{ current: number | null; sessions: Session[] }>('GET', '/api/sessions'),
   startSession: (name: string) => request<Session>('POST', '/api/sessions', { name }),
