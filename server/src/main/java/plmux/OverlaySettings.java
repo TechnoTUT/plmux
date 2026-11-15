@@ -13,7 +13,7 @@ import java.util.List;
  * @param position          寄せる位置 (TOP_LEFT / TOP_RIGHT / BOTTOM_LEFT / BOTTOM_RIGHT)。右側なら右揃えになる
  * @param showArtwork       アートワークを表示するか
  * @param hideWhenIdle      テンポマスターが再生していないときに隠すか
- * @param backgroundOpacity 文字の後ろの帯の不透明度 (0〜100)。0 で完全に透過
+ * @param backgroundOpacity カードの背景の不透明度 (0〜100)。0 で完全に透過
  * @param tags              曲名・アーティストの下に出す情報 (ALBUM / GENRE / KEY / BPM)。表示順もこの順
  */
 public record OverlaySettings(String theme, String position, boolean showArtwork, boolean hideWhenIdle,

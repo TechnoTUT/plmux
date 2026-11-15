@@ -9,7 +9,7 @@ import RevealText from './RevealText.vue'
 /**
  * OBS のブラウザソース用 Now Playing オーバーレイ。テンポマスターのデッキの曲を表示する。
  * 見た目は prolink-tools (https://prolink.tools/) の Track List テーマに寄せている:
- * カードは使わず、各行の後ろにだけ半透明の帯を敷き、アートワークを横に並べる。
+ * アートワークを横に並べ、全体を 1 枚の半透明のカードに載せる (不透明度 0 で背景なし)。
  * 見た目は Settings タブで変更し、WebSocket 経由で即時反映される。
  */
 const { state, onSettings } = useLive()
@@ -71,8 +71,8 @@ const positionClass = computed(() => ({
 const alignRight = computed(() => settings.value.position.endsWith('RIGHT'))
 const dark = computed(() => settings.value.theme === 'DARK')
 
-/** 各行の後ろの帯。不透明度が低いときは文字に影を付けて読みやすくする */
-const lineStyle = computed(() => {
+/** カードの背景。不透明度が低いときは文字に影を付けて読みやすくする */
+const cardStyle = computed(() => {
   const a = settings.value.backgroundOpacity / 100
   const shadow = a < 0.4
     ? (dark.value ? '0 1px 3px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5)' : '0 0 3px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.6)')
@@ -105,8 +105,9 @@ const tagValues = computed(() => {
       <div
         v-if="visible && shown"
         :key="trackKey"
-        class="flex items-start gap-4 max-w-[60rem]"
+        class="flex items-start gap-5 max-w-[60rem] p-4 rounded-lg"
         :class="alignRight ? 'flex-row-reverse text-right' : ''"
+        :style="cardStyle"
       >
         <div
           v-if="settings.showArtwork"
@@ -120,22 +121,20 @@ const tagValues = computed(() => {
           </svg>
         </div>
 
-        <!-- カードの代わりに、各行の後ろにだけ帯を敷く -->
         <div class="min-w-0 flex flex-col gap-1.5" :class="alignRight ? 'items-end' : 'items-start'">
           <span class="np-label text-sm font-bold uppercase tracking-[0.25em] px-2 py-0.5 rounded-sm bg-brand text-white">
             <RevealText text="Now Playing" :delay="0.2" />
           </span>
-          <span class="np-line inline-block max-w-full text-4xl font-semibold leading-snug" :style="lineStyle">
+          <span class="inline-block max-w-full text-4xl font-semibold leading-snug">
             <MarqueeText :text="shown.track.title || 'Unknown Title'" :reveal-delay="0.4" />
           </span>
-          <span class="np-line inline-block max-w-full text-2xl leading-snug" :style="lineStyle">
+          <span class="inline-block max-w-full text-2xl leading-snug">
             <MarqueeText :text="shown.track.artist || 'Unknown Artist'" :reveal-delay="0.6" />
           </span>
           <span
             v-if="tagValues.length"
-            class="np-line inline-flex max-w-full text-lg leading-snug flex-wrap gap-x-4"
+            class="inline-flex max-w-full text-lg leading-snug flex-wrap gap-x-4 opacity-90"
             :class="alignRight ? 'justify-end' : ''"
-            :style="lineStyle"
           >
             <span v-for="(t, i) in tagValues" :key="t.tag" class="inline-flex items-center gap-1.5 whitespace-nowrap">
               <svg viewBox="0 0 24 24" class="h-[1em] w-[1em] flex-none opacity-80" fill="none" stroke="currentColor"
@@ -158,11 +157,6 @@ const tagValues = computed(() => {
 </template>
 
 <style scoped>
-.np-line {
-  padding: 0 0.28em;
-  border-radius: 2px;
-}
-
 /* 入れ替え: 新しい曲は横から滑り込み、古い曲はすっと消える */
 .np-left-enter-active,
 .np-right-enter-active {

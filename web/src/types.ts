@@ -114,7 +114,7 @@ export interface OverlaySettings {
   position: OverlayPosition
   showArtwork: boolean
   hideWhenIdle: boolean
-  /** 文字の後ろの帯の不透明度 (0〜100)。0 で完全に透過 */
+  /** カードの背景の不透明度 (0〜100)。0 で完全に透過 */
   backgroundOpacity: number
   tags: OverlayTag[]
 }

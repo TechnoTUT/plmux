@@ -266,7 +266,7 @@ const previewStyle = computed(() => ({ transform: `scale(${previewScale.value})`
             @change="update({ overlay: { backgroundOpacity: Number(($event.target as HTMLInputElement).value) } })
               .finally(() => (opacityDraft = null))"
           />
-          <p class="text-xs text-slate-400">The band behind each line. 0% is fully transparent; text gets a shadow when the band is faint.</p>
+          <p class="text-xs text-slate-400">The card behind the text and artwork. 0% is fully transparent; text gets a shadow when the card is faint.</p>
         </div>
         <div class="space-y-2">
           <p class="font-medium text-slate-600 dark:text-slate-300">Tags</p>
