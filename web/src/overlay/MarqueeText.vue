@@ -1,15 +1,20 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import RevealText from './RevealText.vue'
 
 /**
  * 枠に収まらないときだけ横にスクロールする 1 行テキスト。
  * 先頭で少し止まってから左へ流れ、2 つ目のコピーが先頭に来たところでループする (つなぎ目が見えない)。
  */
-const props = withDefaults(defineProps<{ text: string; speed?: number; gap?: number; pauseSec?: number }>(), {
-  speed: 60, // px/s
-  gap: 64, // コピー同士の間隔 (px)
-  pauseSec: 2.5, // 先頭で止まる時間
-})
+const props = withDefaults(
+  defineProps<{ text: string; speed?: number; gap?: number; pauseSec?: number; revealDelay?: number }>(),
+  {
+    speed: 60, // px/s
+    gap: 64, // コピー同士の間隔 (px)
+    pauseSec: 2.5, // 先頭で止まる時間。1 文字ずつ現れる演出 (最大 1.2 秒強) もこの間に終わる
+    revealDelay: 0, // 1 文字ずつ現れ始めるまでの秒数
+  },
+)
 
 const box = ref<HTMLElement | null>(null)
 const track = ref<HTMLElement | null>(null)
@@ -58,7 +63,7 @@ watch(() => props.text, () => nextTick(measure))
 <template>
   <div ref="box" class="overflow-hidden whitespace-nowrap" :class="{ 'marquee-fade': overflow }">
     <div ref="track" class="inline-flex">
-      <span ref="content">{{ text }}</span>
+      <span ref="content"><RevealText :text="text" :delay="revealDelay" /></span>
       <span v-if="overflow" :style="{ paddingLeft: `${gap}px` }" aria-hidden="true">{{ text }}</span>
     </div>
   </div>

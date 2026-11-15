@@ -4,6 +4,7 @@ import type { OverlaySettings, Track } from '../types'
 import { api } from '../api'
 import { useLive } from '../composables/useLive'
 import MarqueeText from './MarqueeText.vue'
+import RevealText from './RevealText.vue'
 
 /**
  * OBS のブラウザソース用 Now Playing オーバーレイ。テンポマスターのデッキの曲を表示する。
@@ -83,12 +84,20 @@ const dark = computed(() => settings.value.theme === 'DARK')
           </svg>
         </div>
         <div class="min-w-0 flex-1 border-l-[6px] border-brand pl-6 py-1">
-          <p class="text-base font-bold uppercase tracking-[0.25em] text-brand-light">Now Playing</p>
-          <MarqueeText class="text-4xl font-bold leading-tight mt-1" :text="shown.track.title || 'Unknown Title'" />
+          <!-- カードがスライドインしてから、ラベル → 曲名 → アーティストの順に 1 文字ずつ現れる -->
+          <p class="text-base font-bold uppercase tracking-[0.25em] text-brand-light">
+            <RevealText text="Now Playing" :delay="0.2" />
+          </p>
+          <MarqueeText
+            class="text-4xl font-bold leading-tight mt-1"
+            :text="shown.track.title || 'Unknown Title'"
+            :reveal-delay="0.4"
+          />
           <MarqueeText
             class="text-2xl mt-1"
             :class="dark ? 'text-slate-300' : 'text-slate-600'"
             :text="shown.track.artist || 'Unknown Artist'"
+            :reveal-delay="0.6"
           />
         </div>
       </div>
