@@ -50,14 +50,14 @@ async function startSession() {
 }
 
 async function endSession() {
-  if (!currentSession.value || !confirm(`「${currentSession.value.name}」を終了しますか？`)) return
+  if (!currentSession.value || !confirm(`End session "${currentSession.value.name}"?`)) return
   await api.endSession()
   await loadSessions()
   await loadEntries()
 }
 
 async function remove(e: HistoryEntry) {
-  if (!confirm(`履歴から削除しますか？\n${e.artist ?? ''} - ${e.title ?? ''}`)) return
+  if (!confirm(`Delete this entry from the history?\n${e.artist ?? ''} - ${e.title ?? ''}`)) return
   await api.deleteHistory(e.id)
   entries.value = entries.value.filter((x) => x.id !== e.id)
   await loadSessions()
@@ -117,7 +117,7 @@ watch(selected, loadEntries)
               <input v-model="newName" class="input" :placeholder="defaultName()" @keyup.enter="startSession" />
             </div>
             <button class="btn-primary w-full" @click="startSession">Start Session</button>
-            <p class="text-xs text-slate-400">イベントごとにセッションを開始すると、セットリストをまとめて出力できます。セッション外の曲も「All Tracks」に記録されます。</p>
+            <p class="text-xs text-slate-400">Start a session for each event to export its set list. Tracks played outside a session are still logged under All Tracks.</p>
           </div>
         </template>
       </section>
@@ -142,7 +142,7 @@ watch(selected, loadEntries)
             <span v-else class="text-rose-500 font-sans font-semibold"> · LIVE</span>
           </p>
         </button>
-        <p v-if="sessions.length === 0" class="text-sm text-slate-400 text-center py-2">セッションはまだありません</p>
+        <p v-if="sessions.length === 0" class="text-sm text-slate-400 text-center py-2">No sessions yet</p>
       </section>
     </div>
 
@@ -184,7 +184,7 @@ watch(selected, loadEntries)
                 <span class="inline-grid place-items-center h-6 w-6 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-bold tabular-nums">{{ e.player }}</span>
               </td>
               <td class="py-2 pr-3 max-w-0 w-full">
-                <p class="font-semibold text-slate-800 dark:text-slate-100 truncate">{{ e.title ?? '(タイトルなし)' }}</p>
+                <p class="font-semibold text-slate-800 dark:text-slate-100 truncate">{{ e.title ?? '(untitled)' }}</p>
                 <p class="text-xs text-slate-500 dark:text-slate-400 truncate">{{ e.artist ?? '' }}</p>
               </td>
               <td class="py-2 pr-3 font-mono tabular-nums text-right">{{ e.bpm ? e.bpm.toFixed(1) : '' }}</td>
@@ -200,7 +200,7 @@ watch(selected, loadEntries)
               </td>
             </tr>
             <tr v-if="entries.length === 0">
-              <td colspan="7" class="text-center text-slate-400 py-10">まだ記録がありません</td>
+              <td colspan="7" class="text-center text-slate-400 py-10">No tracks logged yet</td>
             </tr>
           </tbody>
         </table>

@@ -11,9 +11,9 @@ const busy = ref(false)
 const error = ref<string | null>(null)
 
 const modes: { value: LinkMode; label: string; help: string }[] = [
-  { value: 'OFF', label: 'Off', help: 'Ableton Link を使わない。' },
-  { value: 'MONITOR', label: 'Monitor', help: 'Link セッションに参加し、BPM とピア数を表示するだけ。テンポは変更しない。' },
-  { value: 'FOLLOW', label: 'Follow CDJ Master', help: 'Link のテンポと拍（小節）を DJ Link のテンポマスターに追従させる。Ableton Live や照明・VJ ソフトを CDJ に同期したいとき。' },
+  { value: 'OFF', label: 'Off', help: 'Do not use Ableton Link.' },
+  { value: 'MONITOR', label: 'Monitor', help: 'Join the Link session and show its tempo and peer count without changing anything.' },
+  { value: 'FOLLOW', label: 'Follow CDJ Master', help: 'Make the Link tempo and beat grid (and bars) follow the DJ Link tempo master. Use this to sync Ableton Live, lighting or VJ software to the CDJs.' },
 ]
 
 onMounted(async () => {
@@ -76,12 +76,12 @@ function pill() {
             :value="latencyMs"
             @change="update({ latencyMs: Number(($event.target as HTMLInputElement).value) })"
           />
-          <p class="text-xs text-slate-400 mt-1">拍パケットが届くまでの遅延。Link 側が遅れて聞こえるなら値を増やす。</p>
+          <p class="text-xs text-slate-400 mt-1">Delay before beat packets arrive. Increase it if Link sounds late.</p>
         </div>
         <label class="flex items-center justify-between cursor-pointer pt-3 border-t border-slate-100 dark:border-slate-800">
           <div>
             <span class="text-sm font-medium text-slate-700 dark:text-slate-300 block">Align Bars</span>
-            <span class="text-xs text-slate-400 block">拍だけでなく小節の頭も揃える</span>
+            <span class="text-xs text-slate-400 block">Line up the downbeat of each bar, not just beats</span>
           </div>
           <input type="checkbox" class="checkbox" :checked="alignBars" @change="update({ alignBars: ($event.target as HTMLInputElement).checked })" />
         </label>

@@ -51,7 +51,7 @@ function tabDot(id: Tab): string {
         <div>
           <h1 class="text-base font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <span>plmux</span>
-            <span v-if="state?.demo" class="text-[10px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800" title="PLMUX_DEMO=true: ダミーデータを表示中">DEMO</span>
+            <span v-if="state?.demo" class="text-[10px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800" title="PLMUX_DEMO=true: showing dummy data">DEMO</span>
           </h1>
           <p class="text-[11px] text-slate-500 dark:text-slate-400">Pro DJ Link Monitor</p>
         </div>
@@ -127,7 +127,7 @@ function tabDot(id: Tab): string {
         <span class="font-bold">!</span><span>{{ w }}</span>
       </div>
       <div v-if="!connected" class="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 text-rose-700 dark:text-rose-400 rounded-2xl px-5 py-3 text-sm">
-        サーバーとの接続が切れました。再接続しています…
+        Lost connection to the server. Reconnecting…
       </div>
 
       <!-- ==================== TAB: Decks ==================== -->
@@ -135,9 +135,9 @@ function tabDot(id: Tab): string {
         <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 content-start">
           <PlayerCard v-for="p in state?.players ?? []" :key="p.number" :player="p" />
           <div v-if="state && state.players.length === 0" class="card md:col-span-2 text-center py-16 space-y-2">
-            <p class="font-semibold text-slate-700 dark:text-slate-200">プレイヤーが見つかりません</p>
+            <p class="font-semibold text-slate-700 dark:text-slate-200">No players found</p>
             <p class="text-sm text-slate-500 dark:text-slate-400">
-              XDJ-AZ / CDJ が同じネットワークにあり、Pro DJ Link (LINK) が有効か確認してください。
+              Make sure the XDJ-AZ / CDJs are on the same network and Pro DJ Link (LINK) is enabled.
             </p>
           </div>
         </div>

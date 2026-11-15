@@ -32,11 +32,11 @@ onUnmounted(() => off?.())
       <li v-for="e in entries" :key="e.id" class="flex items-center gap-3 min-w-0">
         <span class="text-[11px] font-mono tabular-nums text-slate-400 w-10 flex-none">{{ formatTime(e.playedAt) }}</span>
         <div class="min-w-0">
-          <p class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{{ e.title ?? '(タイトルなし)' }}</p>
+          <p class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{{ e.title ?? '(untitled)' }}</p>
           <p class="text-xs text-slate-500 dark:text-slate-400 truncate">{{ e.artist ?? '' }}</p>
         </div>
       </li>
-      <li v-if="entries.length === 0" class="text-sm text-slate-400 text-center py-4">まだ記録がありません</li>
+      <li v-if="entries.length === 0" class="text-sm text-slate-400 text-center py-4">No tracks logged yet</li>
     </ol>
   </section>
 </template>
