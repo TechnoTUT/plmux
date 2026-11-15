@@ -1,120 +1,130 @@
 # plmux
 
-[Beat Link Trigger](https://github.com/Deep-Symmetry/beat-link-trigger) の機能のうち、サークルで使うものをサーバー（ディスプレイなし）＋ Web GUI で使えるようにしたもの。
-XDJ-AZ での利用を前提にしている。
+A headless server + web GUI that brings the parts of
+[Beat Link Trigger](https://github.com/Deep-Symmetry/beat-link-trigger) we use at TechnoTUT to the browser.
+Built primarily for the **Pioneer DJ XDJ-AZ**.
 
-- **プレイヤー状態表示**: BPM / ピッチ / 拍 / 再生・On-Air・Master・Sync / 曲名・アーティスト・アートワーク / 再生位置
-- **曲履歴ログ**: 一定時間 (既定 15 秒) 再生かつ On-Air になった曲を自動記録。セッション（イベント）単位で管理し CSV に出力
-- **Ableton Link**: Carabiner 経由で Link セッションの監視、または Link のテンポと拍を CDJ のマスターに追従
+- **Player status** — BPM, pitch, beat, Play / On-Air / Master / Sync, title, artist, artwork and playback position for every deck
+- **Track history** — automatically logs tracks that have been playing On-Air for a while (15 s by default), grouped into sessions (events), exportable as CSV
+- **Ableton Link** — monitor a Link session, or make Link follow the tempo and beat grid of the CDJ tempo master (via Carabiner)
 
-## 構成
+## Layout
 
 ```
-vendor/beat-link/     git submodule (main)  Pro DJ Link ライブラリ
-vendor/crate-digger/  git submodule (main)  beat-link が使う rekordbox DB パーサ
-server/               Java 21 + Javalin     REST API + WebSocket、Vue のビルド成果物を配信
-web/                  Vue 3 + Vite + TS     Web GUI
-deploy/k8s/           参考用マニフェスト（本番は TechnoTUT/Infra）
+vendor/beat-link/     git submodule (main)  Pro DJ Link library
+vendor/crate-digger/  git submodule (main)  rekordbox database parser used by beat-link
+server/               Java 21 + Javalin     REST API + WebSocket, serves the built web GUI
+web/                  Vue 3 + Vite + TS     Web GUI (Tailwind CSS, styled after TechnoTUT/moip-toolkit)
+deploy/k8s/           Reference manifests   (production manifests live in TechnoTUT/Infra)
 ```
 
-beat-link はリリース版 (8.0.0) ではなく **main** を使う。XDJ-AZ 対応（Pro DJ Link モード検出、
-Device Library Plus、Beatport Streaming のスロット等）がまだリリースされていないため。
-main が依存する crate-digger も SNAPSHOT なので、リモートの SNAPSHOT は使わず submodule からビルドする。
+We track beat-link **main** rather than the 8.0.0 release, because XDJ-AZ support (Pro DJ Link mode detection,
+Device Library Plus, Beatport streaming slots, …) has not been released yet. crate-digger is only available as a
+SNAPSHOT on main, so it is built from a submodule too instead of being pulled from a snapshot repository.
 
-## ビルド・起動
+## Build & run
 
 ```bash
-git clone --recurse-submodules <this repo>    # 既存の clone なら: git submodule update --init
+git clone --recurse-submodules <this repo>    # existing clone: git submodule update --init
 
-(cd web && npm ci && npm run build)           # web/dist が jar に同梱される
+(cd web && npm ci && npm run build)           # web/dist gets bundled into the jar
 ./mvnw -DskipTests package -pl server -am
 java -jar server/target/plmux-server.jar      # http://localhost:8080
 ```
 
-DJ 機材なしで GUI を確認するときは `PLMUX_DEMO=true` を付けて起動すると、XDJ-AZ 4 デッキを模した
-ダミーデータ（64 秒ごとにミックスが進む）を配信する。曲履歴の記録も実機と同じ経路で動く。
+### Demo mode
+
+To try the GUI without any DJ equipment, start the server with `PLMUX_DEMO=true`. It does not touch the network and
+streams dummy data that mimics an XDJ-AZ in four-deck mode, advancing one mix every 64 seconds. Track history is
+recorded through the same code path as with real hardware.
 
 ```bash
 PLMUX_DEMO=true PLMUX_DATA_DIR=/tmp/plmux-demo java -jar server/target/plmux-server.jar
 ```
 
-開発時は `java -jar ...` でサーバーを起動したまま `cd web && npm run dev` で Vite を起動する
-(API / WebSocket は 8080 に中継される)。
+### Frontend development
 
-### コンテナ
+Keep the server running (`java -jar …`, demo mode works fine) and start Vite with `cd web && npm run dev`.
+API and WebSocket requests are proxied to port 8080.
+
+GUI URL options: `#history` / `#link` open a specific tab, `?theme=dark` / `?theme=light` force the color theme
+(handy for a fixed booth display).
+
+### Container
 
 ```bash
 docker build -t plmux .
 docker run --network host -v plmux-data:/data plmux
 ```
 
-`--network host` が必須（Pro DJ Link は UDP ブロードキャストを使うため）。
+`--network host` is required: Pro DJ Link relies on UDP broadcasts.
 
-## 設定（環境変数）
+## Configuration (environment variables)
 
-| 変数 | 既定値 | 説明 |
+| Variable | Default | Description |
 |---|---|---|
-| `PLMUX_HTTP_PORT` | `8080` | Web GUI / API のポート |
-| `PLMUX_DATA_DIR` | `./data` | SQLite (`plmux.db`) の保存先 |
-| `PLMUX_DEVICE_NAME` | `plmux` | DJ Link 上に名乗るデバイス名 |
-| `PLMUX_USE_STANDARD_PLAYER_NUMBER` | `false` | Virtual CDJ に 1〜4 番を使うか。XDJ-AZ では不要 |
-| `PLMUX_HISTORY_MIN_PLAY_SECONDS` | `15` | 何秒再生されたら履歴に記録するか |
-| `PLMUX_HISTORY_REQUIRE_ON_AIR` | `true` | On-Air（フェーダーが上がっている）ときだけ再生時間を数えるか |
-| `PLMUX_LINK_MODE` | `OFF` | 起動時の Link モード: `OFF` / `MONITOR` / `FOLLOW` |
-| `PLMUX_LINK_LATENCY_MS` | `1` | 拍パケットの遅延補正 |
-| `PLMUX_LINK_ALIGN_BARS` | `true` | 拍だけでなく小節の頭も揃える |
-| `PLMUX_CARABINER_PORT` | `17000` | Carabiner のポート |
-| `PLMUX_CARABINER_EMBEDDED` | `true` | Carabiner が起動していなければ同梱バイナリを起動する |
-| `PLMUX_DEMO` | `false` | DJ Link に接続せずダミーデータを配信する（GUI 確認用） |
-| `TZ` | (OS) | 履歴 CSV の時刻のタイムゾーン |
+| `PLMUX_HTTP_PORT` | `8080` | Port for the web GUI / API |
+| `PLMUX_DATA_DIR` | `./data` | Where the SQLite database (`plmux.db`) is stored |
+| `PLMUX_DEVICE_NAME` | `plmux` | Device name announced on the DJ Link network |
+| `PLMUX_USE_STANDARD_PLAYER_NUMBER` | `false` | Make the Virtual CDJ claim player number 1–4. Not needed for the XDJ-AZ |
+| `PLMUX_HISTORY_MIN_PLAY_SECONDS` | `15` | Seconds a track must play before it is logged |
+| `PLMUX_HISTORY_REQUIRE_ON_AIR` | `true` | Only count play time while the channel is On-Air (fader up) |
+| `PLMUX_LINK_MODE` | `OFF` | Initial Link mode: `OFF` / `MONITOR` / `FOLLOW` (can be changed from the GUI) |
+| `PLMUX_LINK_LATENCY_MS` | `1` | Latency compensation for beat packets |
+| `PLMUX_LINK_ALIGN_BARS` | `true` | Align bars, not just beats |
+| `PLMUX_CARABINER_PORT` | `17000` | Carabiner port |
+| `PLMUX_CARABINER_EMBEDDED` | `true` | Launch the bundled Carabiner binary if none is running |
+| `PLMUX_DEMO` | `false` | Serve dummy data instead of connecting to DJ Link (for GUI testing) |
+| `TZ` | (OS) | Time zone used for timestamps in the history CSV |
 
-## XDJ-AZ で使うときの注意
+## Notes for the XDJ-AZ
 
-- XDJ-AZ 本体の設定で **LINK (Pro DJ Link) モード** にする。それ以外のモードだと画面に警告が出る。
-- サーバーは XDJ-AZ の LINK 端子と**同じ LAN（同じ L2 セグメント）**に置く。
-- メタデータは XDJ-AZ への dbserver 問い合わせで取得する（XDJ-AZ は Device Library Plus の ID を使うため、
-  DeviceSQL の DB ファイルのダウンロードは使えない。beat-link main が自動で切り替える）。
-- 4 デッキ分のステータスが 1 台から届くので、プレイヤーはステータスパケットから列挙している。
-- XDJ-AZ / XDJ-XZ ではスロット表記を `USB 1` / `USB 2` に読み替えている（BLT と同じ）。
+- Put the XDJ-AZ into **LINK (Pro DJ Link) mode**. The GUI shows a warning if it is in any other mode.
+- The server must be on the **same LAN (same L2 segment)** as the XDJ-AZ's LINK port.
+- Metadata is fetched with dbserver queries. The XDJ-AZ uses Device Library Plus IDs, so DeviceSQL database
+  downloads cannot be used; beat-link main switches over automatically.
+- One unit sends status for four decks, so players are enumerated from status packets rather than device announcements.
+- On the XDJ-AZ / XDJ-XZ the slots are labelled `USB 1` / `USB 2` (same as BLT).
 
 ## Kubernetes
 
-`deploy/k8s/` は参考用。本番マニフェストは TechnoTUT/Infra に置く。ポイント:
+`deploy/k8s/` is for reference only; the production manifests live in TechnoTUT/Infra. Key points:
 
-- **`hostNetwork: true` が必須。** さらに Pod は **DJ ブースの LAN に NIC を持つノード**に固定する
-  (`nodeSelector`)。クラスタが会場の外にある場合は、会場に置いたマシン (k3s agent 等) をノードとして参加させる。
-- UDP 50000〜50002 と SQLite を占有するので `replicas: 1`、`strategy: Recreate`。
-- 履歴 DB 用の PVC を `/data` に、同梱 Carabiner の展開先として `/tmp` に emptyDir をマウントする。
-- 同梱 Carabiner は **x86_64 のみ**（lib-carabiner に入っている ARM 版は 32bit armhf 用）。
-  arm64 ノードで Link を使う場合は Carabiner を別途起動し、`PLMUX_CARABINER_EMBEDDED=false` にする。
-- Ingress 経由の場合は WebSocket (`/ws`) が通るようにする。
-- 現状 Web GUI に認証はない。ブース LAN 内に閉じるか、Ingress 側で認証をかけること。
-- コンテナイメージは `.github/workflows/image.yml` で `ghcr.io/<owner>/<repo>` に push される。
+- **`hostNetwork: true` is required**, and the pod must be pinned (`nodeSelector`) to a node that has a NIC on the
+  DJ booth LAN. If the cluster is not at the venue, join an on-site machine as a node (e.g. a k3s agent).
+- The pod owns UDP 50000–50002 and the SQLite file, so use `replicas: 1` and `strategy: Recreate`.
+- Mount a PVC at `/data` for the history database and an `emptyDir` at `/tmp` (the bundled Carabiner is extracted there).
+- The bundled Carabiner is **x86_64 only** (the ARM build in lib-carabiner is 32-bit armhf). On arm64 nodes, run
+  Carabiner separately and set `PLMUX_CARABINER_EMBEDDED=false`.
+- If you go through an Ingress, make sure WebSocket (`/ws`) is allowed.
+- The GUI has no authentication yet. Keep it on the booth LAN or put authentication in front of it at the Ingress.
+- `.github/workflows/image.yml` builds the image and pushes it to `ghcr.io/<owner>/<repo>`.
 
-## beat-link の更新
+## Updating beat-link
 
 ```bash
-scripts/update-vendor.sh   # submodule を main 最新に更新し、pom.xml の beatlink.version を追従
+scripts/update-vendor.sh   # move the submodules to the latest main and sync beatlink.version in pom.xml
 ./mvnw -DskipTests package -pl server -am
 git add vendor pom.xml && git commit -m "Update beat-link"
 ```
 
 ## API
 
-| メソッド | パス | 説明 |
+| Method | Path | Description |
 |---|---|---|
-| WS | `/ws` | `state`（状態, 最大 10Hz）/ `beat`（拍）/ `history`（新しい履歴）を配信 |
-| GET | `/api/state` | 現在の状態 |
-| GET | `/api/players/{n}/artwork` | アートワーク画像 |
-| GET / PUT | `/api/link` | Link 設定 `{mode, latencyMs, alignBars}` |
-| GET / POST | `/api/sessions` | セッション一覧 / 開始 `{name}` |
-| POST | `/api/sessions/end` | 進行中のセッションを終了 |
-| GET | `/api/history?session=current\|all\|{id}` | 履歴 |
-| GET | `/api/history.csv?session=...` | 履歴 CSV |
-| DELETE | `/api/history/{id}` | 履歴を 1 件削除 |
-| GET | `/healthz` | ヘルスチェック |
+| WS | `/ws` | Pushes `state` (up to 10 Hz), `beat` and `history` (new entry) messages |
+| GET | `/api/state` | Current state |
+| GET | `/api/players/{n}/artwork` | Artwork image |
+| GET / PUT | `/api/link` | Link settings `{mode, latencyMs, alignBars}` |
+| GET / POST | `/api/sessions` | List sessions / start one `{name}` |
+| POST | `/api/sessions/end` | End the running session |
+| GET | `/api/history?session=current\|all\|{id}` | Track history |
+| GET | `/api/history.csv?session=...` | Track history as CSV |
+| DELETE | `/api/history/{id}` | Delete one history entry |
+| GET | `/healthz` | Health check |
 
-## ライセンス
+## License
 
-Eclipse Public License 2.0（Beat Link Trigger に合わせる）。
-Ableton Link の追従ロジックは [beat-carabiner](https://github.com/Deep-Symmetry/beat-carabiner) を Java に移植したもの。
+Eclipse Public License 2.0, matching Beat Link Trigger.
+The Ableton Link follow logic is a Java port of [beat-carabiner](https://github.com/Deep-Symmetry/beat-carabiner).
+The TechnoTUT logos in `web/public/` come from [TechnoTUT/moip-toolkit](https://github.com/TechnoTUT/moip-toolkit) (MIT).
