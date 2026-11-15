@@ -114,6 +114,11 @@ docker run --network host -v plmux-data:/data plmux
 - The GUI has no authentication yet. Keep it on the booth LAN or put authentication in front of it at the Ingress.
 - `.github/workflows/image.yml` builds the image and pushes it to `ghcr.io/<owner>/<repo>`.
 
+## CI
+
+`.github/workflows/ci.yml` runs on every push to `main` and on pull requests: it type-checks and builds the web GUI
+(`npm run build`) and runs the server tests (`./mvnw verify -pl server -am`, plmux tests only).
+
 ## Releases
 
 Push a tag that starts with `v` to publish a release:
