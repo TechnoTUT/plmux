@@ -73,11 +73,6 @@ public final class BeatLinkService implements PlayerSource {
     public void start() throws Exception {
         virtualCdj.setDeviceName(config.deviceName());
         virtualCdj.setUseStandardPlayerNumber(config.useStandardPlayerNumber());
-        try {
-            waveformFinder.setPreferredStyle(WaveformFinder.WaveformStyle.valueOf(config.waveformStyle()));
-        } catch (IllegalArgumentException e) {
-            log.warn("Unknown PLMUX_WAVEFORM_STYLE {}, using beat-link default (RGB)", config.waveformStyle());
-        }
 
         deviceFinder.addDeviceAnnouncementListener(new DeviceAnnouncementListener() {
             @Override public void deviceFound(DeviceAnnouncement a) {
@@ -191,6 +186,16 @@ public final class BeatLinkService implements PlayerSource {
 
     public TrackMetadata metadataFor(int player) {
         return metadataFinder.isRunning() ? metadataFinder.getLatestMetadataFor(player) : null;
+    }
+
+    @Override
+    public void setWaveformStyle(String style) {
+        WaveformFinder.WaveformStyle s = WaveformFinder.WaveformStyle.valueOf(style);
+        if (waveformFinder.getPreferredStyle() == s) return;
+        log.info("Waveform style: {}", s);
+        waveformFinder.setPreferredStyle(s);  // キャッシュを捨てて取り直す
+        waveformCache.clear();
+        fireChange();
     }
 
     @Override

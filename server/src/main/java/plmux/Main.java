@@ -42,6 +42,8 @@ public final class Main {
     private final PlayerSource source;
     private final LinkService link;
     private final HistoryService history;
+    private final SettingsStore settings;
+    private static final List<String> WAVEFORM_STYLES = List.of("THREE_BAND", "RGB", "BLUE");
     private final Set<WsContext> clients = ConcurrentHashMap.newKeySet();
     private final AtomicBoolean dirty = new AtomicBoolean(true);
     private final ScheduledExecutorService pusher = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -57,6 +59,7 @@ public final class Main {
         this.link = new LinkService(config, org.deepsymmetry.beatlink.VirtualCdj.getInstance());
         this.history = new HistoryService(config.dataDir(), config.historyMinPlaySeconds(),
                 config.historyRequireOnAir());
+        this.settings = new SettingsStore(config.dataDir());
     }
 
     public static void main(String[] args) throws Exception {
@@ -67,6 +70,12 @@ public final class Main {
     }
 
     private void run() throws Exception {
+        String style = settings.get("waveformStyle", config.waveformStyle());
+        if (!WAVEFORM_STYLES.contains(style)) {
+            log.warn("Unknown waveform style {}, using THREE_BAND", style);
+            style = "THREE_BAND";
+        }
+        source.setWaveformStyle(style);
         source.onChange(() -> dirty.set(true));
         link.onChange(() -> dirty.set(true));
         source.onBeat(beat -> broadcast("beat", beat));
@@ -87,6 +96,7 @@ public final class Main {
             source.stop();
             app.stop();
             history.close();
+            settings.close();
         }, "shutdown"));
     }
 
@@ -185,6 +195,20 @@ public final class Main {
             ctx.json(linkSettings());
         });
 
+        app.get("/api/settings", ctx -> ctx.json(settingsBody()));
+        app.put("/api/settings", ctx -> {
+            SettingsUpdate u = ctx.bodyAsClass(SettingsUpdate.class);
+            if (u.waveformStyle() != null) {
+                String s = u.waveformStyle().toUpperCase();
+                if (!WAVEFORM_STYLES.contains(s)) {
+                    throw new BadRequestResponse("waveformStyle must be one of " + WAVEFORM_STYLES);
+                }
+                settings.put("waveformStyle", s);
+                source.setWaveformStyle(s);
+            }
+            ctx.json(settingsBody());
+        });
+
         app.get("/api/sessions", ctx -> {
             Map<String, Object> body = new java.util.LinkedHashMap<>();
             body.put("current", history.currentSessionId());  // null 可
@@ -215,6 +239,13 @@ public final class Main {
     record LinkUpdate(String mode, Integer latencyMs, Boolean alignBars) {}
 
     record SessionCreate(String name) {}
+
+    record SettingsUpdate(String waveformStyle) {}
+
+    private Map<String, Object> settingsBody() throws SQLException {
+        return Map.of("waveformStyle", settings.get("waveformStyle", config.waveformStyle()),
+                "waveformStyles", WAVEFORM_STYLES);
+    }
 
     private Map<String, Object> linkSettings() {
         return Map.of("status", link.status(), "latencyMs", link.latencyMs(), "alignBars", link.alignBars());

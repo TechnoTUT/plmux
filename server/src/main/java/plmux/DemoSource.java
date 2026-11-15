@@ -217,6 +217,11 @@ public final class DemoSource implements PlayerSource {
     }
 
     @Override
+    public void setWaveformStyle(String style) {
+        // デモ側の対応は別途
+    }
+
+    @Override
     public Model.Waveform waveform(int player) {
         if (player < 1 || player > 4) return null;
         int trackIndex;
