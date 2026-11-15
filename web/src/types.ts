@@ -12,6 +12,7 @@ export interface Track {
   sourcePlayer: number
   sourceSlot: string | null
   artKey: string
+  waveformKey: string | null
 }
 
 export interface Player {
@@ -94,4 +95,39 @@ export interface LinkSettings {
   status: LinkStatus
   latencyMs: number
   alignBars: boolean
+}
+
+export type WaveformStyle = 'BLUE' | 'RGB' | 'THREE_BAND'
+
+/** hotCue が 0 ならメモリーポイント、endMs があればループ */
+export interface Cue {
+  timeMs: number
+  endMs: number | null
+  hotCue: number
+  color: string | null
+  comment: string | null
+}
+
+/** /api/players/{n}/waveform のレスポンス (server/src/main/java/plmux/Model.java の Waveform) */
+export interface WaveformResponse {
+  key: string
+  style: WaveformStyle
+  durationMs: number
+  preview: { segments: number; maxHeight: number; stride: number; data: string } | null
+  detail: { frames: number; stride: number; data: string } | null
+  beatTimesMs: number[]
+  beatsWithinBar: number[]
+  cues: Cue[]
+}
+
+/** Base64 を展開済みの波形 */
+export interface Waveform {
+  key: string
+  style: WaveformStyle
+  durationMs: number
+  preview: { segments: number; maxHeight: number; stride: number; bytes: Uint8Array } | null
+  detail: { frames: number; stride: number; bytes: Uint8Array } | null
+  beatTimesMs: number[]
+  beatsWithinBar: number[]
+  cues: Cue[]
 }

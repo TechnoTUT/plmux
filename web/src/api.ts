@@ -1,4 +1,4 @@
-import type { HistoryEntry, LinkMode, LinkSettings, Session } from './types'
+import type { HistoryEntry, LinkMode, LinkSettings, Session, WaveformResponse } from './types'
 
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
@@ -23,6 +23,9 @@ export const api = {
     request<HistoryEntry[]>('GET', `/api/history?session=${session}&limit=${limit}`),
   deleteHistory: (id: number) => request<void>('DELETE', `/api/history/${id}`),
   historyCsvUrl: (session: number | 'all' | 'current') => `/api/history.csv?session=${session}`,
+
+  getWaveform: (player: number, key: string) =>
+    request<WaveformResponse>('GET', `/api/players/${player}/waveform?k=${encodeURIComponent(key)}`),
 
   artworkUrl: (player: number, artKey: string) =>
     `/api/players/${player}/artwork?k=${encodeURIComponent(artKey)}`,
