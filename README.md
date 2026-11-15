@@ -31,6 +31,13 @@ git clone --recurse-submodules <this repo>    # 既存の clone なら: git subm
 java -jar server/target/plmux-server.jar      # http://localhost:8080
 ```
 
+DJ 機材なしで GUI を確認するときは `PLMUX_DEMO=true` を付けて起動すると、XDJ-AZ 4 デッキを模した
+ダミーデータ（64 秒ごとにミックスが進む）を配信する。曲履歴の記録も実機と同じ経路で動く。
+
+```bash
+PLMUX_DEMO=true PLMUX_DATA_DIR=/tmp/plmux-demo java -jar server/target/plmux-server.jar
+```
+
 開発時は `java -jar ...` でサーバーを起動したまま `cd web && npm run dev` で Vite を起動する
 (API / WebSocket は 8080 に中継される)。
 
@@ -58,6 +65,7 @@ docker run --network host -v plmux-data:/data plmux
 | `PLMUX_LINK_ALIGN_BARS` | `true` | 拍だけでなく小節の頭も揃える |
 | `PLMUX_CARABINER_PORT` | `17000` | Carabiner のポート |
 | `PLMUX_CARABINER_EMBEDDED` | `true` | Carabiner が起動していなければ同梱バイナリを起動する |
+| `PLMUX_DEMO` | `false` | DJ Link に接続せずダミーデータを配信する（GUI 確認用） |
 | `TZ` | (OS) | 履歴 CSV の時刻のタイムゾーン |
 
 ## XDJ-AZ で使うときの注意
