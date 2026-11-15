@@ -14,7 +14,7 @@ const onAir = computed(() => props.state?.players.filter((p) => p.onAir).map((p)
 
 <template>
   <section class="card space-y-4">
-    <h2 class="card-title">DJ Link Status</h2>
+    <h2 class="card-title">Pro DJ Link Status</h2>
     <div class="flex items-center justify-between">
       <span class="text-slate-600 dark:text-slate-300 font-medium text-sm">Status</span>
       <span class="pill" :class="status.cls">{{ status.label }}</span>
