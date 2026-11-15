@@ -48,7 +48,7 @@ PLMUX_DEMO=true PLMUX_DATA_DIR=/tmp/plmux-demo java -jar server/target/plmux-ser
 Keep the server running (`java -jar …`, demo mode works fine) and start Vite with `cd web && npm run dev`.
 API and WebSocket requests are proxied to port 8080.
 
-GUI URL options: `#history` / `#link` open a specific tab, `?theme=dark` / `?theme=light` force the color theme
+GUI URL options: `#history` / `#link` / `#settings` open a specific tab, `?theme=dark` / `?theme=light` force the color theme
 (handy for a fixed booth display).
 
 ### Container
@@ -73,7 +73,7 @@ docker run --network host -v plmux-data:/data plmux
 | `PLMUX_LINK_MODE` | `OFF` | Initial Link mode: `OFF` / `MONITOR` / `FOLLOW` (can be changed from the GUI) |
 | `PLMUX_LINK_LATENCY_MS` | `1` | Latency compensation for beat packets |
 | `PLMUX_LINK_ALIGN_BARS` | `true` | Align bars, not just beats |
-| `PLMUX_WAVEFORM_STYLE` | `THREE_BAND` | Preferred waveform style: `THREE_BAND` / `RGB` / `BLUE` (falls back if the player cannot provide it) |
+| `PLMUX_WAVEFORM_STYLE` | `THREE_BAND` | Default waveform style: `THREE_BAND` / `RGB` / `BLUE`. Can be changed in the GUI's Settings tab, which is saved and takes precedence. Falls back if a player cannot provide it |
 | `PLMUX_CARABINER_PORT` | `17000` | Carabiner port |
 | `PLMUX_CARABINER_EMBEDDED` | `true` | Launch the bundled Carabiner binary if none is running |
 | `PLMUX_DEMO` | `false` | Serve dummy data instead of connecting to DJ Link (for GUI testing) |
@@ -119,6 +119,7 @@ git add vendor pom.xml && git commit -m "Update beat-link"
 | GET | `/api/players/{n}/artwork` | Artwork image |
 | GET | `/api/players/{n}/waveform` | Waveform preview/detail, beat grid and cue points (see `Model.Waveform`) |
 | GET / PUT | `/api/link` | Link settings `{mode, latencyMs, alignBars}` |
+| GET / PUT | `/api/settings` | GUI settings `{waveformStyle}` (saved in `plmux.db`) |
 | GET / POST | `/api/sessions` | List sessions / start one `{name}` |
 | POST | `/api/sessions/end` | End the running session |
 | GET | `/api/history?session=current\|all\|{id}` | Track history |
