@@ -1,5 +1,6 @@
 export function formatDuration(totalSec: number): string {
-  if (!totalSec || totalSec < 0) return '--:--'
+  if (!Number.isFinite(totalSec)) return '--:--'
+  if (totalSec < 0) totalSec = 0
   const m = Math.floor(totalSec / 60)
   const s = Math.floor(totalSec % 60)
   return `${m}:${s.toString().padStart(2, '0')}`
