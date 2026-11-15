@@ -8,11 +8,9 @@ import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.http.staticfiles.Location;
 import io.javalin.websocket.WsContext;
-import org.deepsymmetry.beatlink.data.AlbumArt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
@@ -41,7 +39,7 @@ public final class Main {
     private static final long KEEPALIVE_MS = 2000;
 
     private final Config config;
-    private final BeatLinkService beatLink;
+    private final PlayerSource source;
     private final LinkService link;
     private final HistoryService history;
     private final Set<WsContext> clients = ConcurrentHashMap.newKeySet();
@@ -55,8 +53,8 @@ public final class Main {
 
     private Main(Config config) throws Exception {
         this.config = config;
-        this.beatLink = new BeatLinkService(config);
-        this.link = new LinkService(config, beatLink.virtualCdj());
+        this.source = new BeatLinkService(config);
+        this.link = new LinkService(config, org.deepsymmetry.beatlink.VirtualCdj.getInstance());
         this.history = new HistoryService(config.dataDir(), config.historyMinPlaySeconds(),
                 config.historyRequireOnAir());
     }
@@ -69,19 +67,15 @@ public final class Main {
     }
 
     private void run() throws Exception {
-        beatLink.onChange(() -> dirty.set(true));
+        source.onChange(() -> dirty.set(true));
         link.onChange(() -> dirty.set(true));
-        beatLink.onBeat(beat -> broadcast("beat", Map.of(
-                "player", beat.getDeviceNumber(),
-                "beatWithinBar", beat.isBeatWithinBarMeaningful() ? beat.getBeatWithinBar() : 0,
-                "bpm", BeatLinkService.round2(beat.getEffectiveTempo()),
-                "master", beat.isTempoMaster())));
+        source.onBeat(beat -> broadcast("beat", beat));
         history.onNewEntry(entry -> broadcast("history", entry));
 
         Javalin app = createApp();
         app.start(config.httpPort());
 
-        beatLink.start();
+        source.start();
         link.start();
         pusher.scheduleAtFixedRate(this::pushState, PUSH_INTERVAL_MS, PUSH_INTERVAL_MS, TimeUnit.MILLISECONDS);
 
@@ -89,14 +83,14 @@ public final class Main {
             log.info("Shutting down");
             pusher.shutdownNow();
             link.stop();
-            beatLink.stop();
+            source.stop();
             app.stop();
             history.close();
         }, "shutdown"));
     }
 
     private Model.State currentState() {
-        return beatLink.snapshot(link.status());
+        return source.snapshot(link.status());
     }
 
     private void pushState() {
@@ -220,11 +214,8 @@ public final class Main {
 
     private void artwork(Context ctx) {
         int player = Integer.parseInt(ctx.pathParam("player"));
-        AlbumArt art = beatLink.artFor(player);
-        if (art == null) throw new NotFoundResponse();
-        ByteBuffer raw = art.getRawBytes();
-        byte[] bytes = new byte[raw.remaining()];
-        raw.get(bytes);
+        byte[] bytes = source.artwork(player);
+        if (bytes == null) throw new NotFoundResponse();
         boolean png = bytes.length > 4 && (bytes[0] & 0xff) == 0x89 && bytes[1] == 'P';
         ctx.contentType(png ? "image/png" : "image/jpeg");
         // URL に artKey を付けて呼ぶ前提なので、長めにキャッシュさせてよい

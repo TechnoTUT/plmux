@@ -25,7 +25,7 @@ import java.util.function.Consumer;
  *   <li>スロット番号の意味が他機種と異なる (SD_SLOT が USB 2)。</li>
  * </ul>
  */
-public final class BeatLinkService {
+public final class BeatLinkService implements PlayerSource {
     private static final Logger log = LoggerFactory.getLogger(BeatLinkService.class);
 
     private final Config config;
@@ -44,16 +44,18 @@ public final class BeatLinkService {
     });
 
     private final List<Runnable> changeListeners = new CopyOnWriteArrayList<>();
-    private final List<Consumer<Beat>> beatListeners = new CopyOnWriteArrayList<>();
+    private final List<Consumer<BeatEvent>> beatListeners = new CopyOnWriteArrayList<>();
     private volatile Long xdjAzNotLinkSince = null;
 
     public BeatLinkService(Config config) {
         this.config = config;
     }
 
+    @Override
     public void onChange(Runnable listener) { changeListeners.add(listener); }
 
-    public void onBeat(Consumer<Beat> listener) { beatListeners.add(listener); }
+    @Override
+    public void onBeat(Consumer<BeatEvent> listener) { beatListeners.add(listener); }
 
     public VirtualCdj virtualCdj() { return virtualCdj; }
 
@@ -63,6 +65,7 @@ public final class BeatLinkService {
         }
     }
 
+    @Override
     public void start() throws Exception {
         virtualCdj.setDeviceName(config.deviceName());
         virtualCdj.setUseStandardPlayerNumber(config.useStandardPlayerNumber());
@@ -82,8 +85,11 @@ public final class BeatLinkService {
         metadataFinder.addTrackMetadataListener(update -> fireChange());
         artFinder.addAlbumArtListener(update -> fireChange());
         beatFinder.addBeatListener(beat -> {
-            for (Consumer<Beat> l : beatListeners) {
-                try { l.accept(beat); } catch (Exception e) { log.warn("beat listener failed", e); }
+            BeatEvent event = new BeatEvent(beat.getDeviceNumber(),
+                    beat.isBeatWithinBarMeaningful() ? beat.getBeatWithinBar() : 0,
+                    round2(beat.getEffectiveTempo()), beat.isTempoMaster());
+            for (Consumer<BeatEvent> l : beatListeners) {
+                try { l.accept(event); } catch (Exception e) { log.warn("beat listener failed", e); }
             }
         });
 
@@ -144,6 +150,7 @@ public final class BeatLinkService {
         }
     }
 
+    @Override
     public void stop() {
         scheduler.shutdownNow();
         for (Runnable r : List.<Runnable>of(timeFinder::stop, artFinder::stop, crateDigger::stop,
@@ -156,8 +163,14 @@ public final class BeatLinkService {
         return virtualCdj.isRunning();
     }
 
-    public AlbumArt artFor(int player) {
-        return artFinder.isRunning() ? artFinder.getLatestArtFor(player) : null;
+    @Override
+    public byte[] artwork(int player) {
+        AlbumArt art = artFinder.isRunning() ? artFinder.getLatestArtFor(player) : null;
+        if (art == null) return null;
+        java.nio.ByteBuffer raw = art.getRawBytes();
+        byte[] bytes = new byte[raw.remaining()];
+        raw.get(bytes);
+        return bytes;
     }
 
     public TrackMetadata metadataFor(int player) {
@@ -165,6 +178,7 @@ public final class BeatLinkService {
     }
 
     /** 現在の全プレイヤー状態のスナップショットを作る。 */
+    @Override
     public Model.State snapshot(Model.LinkStatus link) {
         List<Model.Player> players = new ArrayList<>();
         List<Model.Device> others = new ArrayList<>();
