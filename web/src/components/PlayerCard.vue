@@ -57,8 +57,8 @@ const flags = computed(() => [
         class="h-9 w-9 rounded-xl grid place-items-center text-lg font-bold tabular-nums"
         :class="player.onAir ? 'bg-brand text-white shadow-md shadow-brand/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'"
       >{{ player.number }}</span>
-      <div class="min-w-0">
-        <h2 class="card-title">Deck {{ player.number }}</h2>
+      <div class="flex-none">
+        <h2 class="card-title whitespace-nowrap">Deck {{ player.number }}</h2>
         <p class="text-[11px] text-slate-400 font-mono truncate">{{ player.model }}</p>
       </div>
       <div class="ml-auto flex flex-wrap justify-end gap-1">
