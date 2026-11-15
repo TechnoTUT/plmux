@@ -20,4 +20,7 @@ public interface PlayerSource {
 
     /** アートワーク画像 (JPEG/PNG)。なければ null。 */
     byte[] artwork(int player);
+
+    /** 波形・ビートグリッド・キュー。何も取れていなければ null。 */
+    Model.Waveform waveform(int player);
 }

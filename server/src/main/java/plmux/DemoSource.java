@@ -191,7 +191,7 @@ public final class DemoSource implements PlayerSource {
             Model.Track track = metadataReady
                     ? new Model.Track(1000 + d.trackIndex, t.title(), t.artist(), t.album(), t.genre(), t.key(),
                             t.durationSec(), t.bpm(), d.number, d.number % 2 == 1 ? "USB 1" : "USB 2",
-                            "demo-" + d.number + "-" + d.trackIndex)
+                            "demo-" + d.number + "-" + d.trackIndex, null)
                     : null;
             double bpm = d.synced || d.master ? masterBpm : t.bpm();
             if (d.master) masterPlayer = d.number;
@@ -214,6 +214,11 @@ public final class DemoSource implements PlayerSource {
             trackIndex = decks[player - 1].trackIndex;
         }
         return artCache.computeIfAbsent(trackIndex, DemoSource::renderArt);
+    }
+
+    @Override
+    public Model.Waveform waveform(int player) {
+        return null;
     }
 
     /** 曲ごとに色の違う抽象的なジャケット画像を生成する。 */

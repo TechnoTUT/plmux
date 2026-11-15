@@ -162,6 +162,13 @@ public final class Main {
         app.get("/api/state", ctx -> ctx.json(currentState()));
 
         app.get("/api/players/{player}/artwork", this::artwork);
+        app.get("/api/players/{player}/waveform", ctx -> {
+            Model.Waveform w = source.waveform(Integer.parseInt(ctx.pathParam("player")));
+            if (w == null) throw new NotFoundResponse();
+            // URL に waveformKey を付けて呼ぶ前提なのでキャッシュさせてよい
+            ctx.header("Cache-Control", ctx.queryParam("k") != null ? "public, max-age=86400" : "no-cache");
+            ctx.json(w);
+        });
 
         app.get("/api/link", ctx -> ctx.json(linkSettings()));
         app.put("/api/link", ctx -> {

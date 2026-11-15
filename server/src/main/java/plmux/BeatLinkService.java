@@ -36,6 +36,10 @@ public final class BeatLinkService implements PlayerSource {
     private final CrateDigger crateDigger = CrateDigger.getInstance();
     private final ArtFinder artFinder = ArtFinder.getInstance();
     private final TimeFinder timeFinder = TimeFinder.getInstance();
+    private final BeatGridFinder beatGridFinder = BeatGridFinder.getInstance();
+    private final WaveformFinder waveformFinder = WaveformFinder.getInstance();
+    /** プレイヤーごとに直近にエンコードした波形 (waveformKey が変わるまで使い回す) */
+    private final Map<Integer, Model.Waveform> waveformCache = new ConcurrentHashMap<>();
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "beatlink-supervisor");
@@ -69,6 +73,11 @@ public final class BeatLinkService implements PlayerSource {
     public void start() throws Exception {
         virtualCdj.setDeviceName(config.deviceName());
         virtualCdj.setUseStandardPlayerNumber(config.useStandardPlayerNumber());
+        try {
+            waveformFinder.setPreferredStyle(WaveformFinder.WaveformStyle.valueOf(config.waveformStyle()));
+        } catch (IllegalArgumentException e) {
+            log.warn("Unknown PLMUX_WAVEFORM_STYLE {}, using RGB", config.waveformStyle());
+        }
 
         deviceFinder.addDeviceAnnouncementListener(new DeviceAnnouncementListener() {
             @Override public void deviceFound(DeviceAnnouncement a) {
@@ -84,6 +93,11 @@ public final class BeatLinkService implements PlayerSource {
         virtualCdj.addUpdateListener(update -> fireChange());
         metadataFinder.addTrackMetadataListener(update -> fireChange());
         artFinder.addAlbumArtListener(update -> fireChange());
+        beatGridFinder.addBeatGridListener(update -> fireChange());
+        waveformFinder.addWaveformListener(new WaveformListener() {
+            @Override public void previewChanged(WaveformPreviewUpdate update) { fireChange(); }
+            @Override public void detailChanged(WaveformDetailUpdate update) { fireChange(); }
+        });
         beatFinder.addBeatListener(beat -> {
             BeatEvent event = new BeatEvent(beat.getDeviceNumber(),
                     beat.isBeatWithinBarMeaningful() ? beat.getBeatWithinBar() : 0,
@@ -120,6 +134,8 @@ public final class BeatLinkService implements PlayerSource {
             startIfNeeded(crateDigger::isRunning, crateDigger::start, "CrateDigger");
             startIfNeeded(artFinder::isRunning, artFinder::start, "ArtFinder");
             startIfNeeded(timeFinder::isRunning, timeFinder::start, "TimeFinder");
+            startIfNeeded(beatGridFinder::isRunning, beatGridFinder::start, "BeatGridFinder");
+            startIfNeeded(waveformFinder::isRunning, waveformFinder::start, "WaveformFinder");
             updateXdjAzMode();
             fireChange();
         } catch (Exception e) {
@@ -153,7 +169,7 @@ public final class BeatLinkService implements PlayerSource {
     @Override
     public void stop() {
         scheduler.shutdownNow();
-        for (Runnable r : List.<Runnable>of(timeFinder::stop, artFinder::stop, crateDigger::stop,
+        for (Runnable r : List.<Runnable>of(waveformFinder::stop, beatGridFinder::stop, timeFinder::stop, artFinder::stop, crateDigger::stop,
                 metadataFinder::stop, beatFinder::stop, virtualCdj::stop, deviceFinder::stop)) {
             try { r.run(); } catch (Exception e) { log.debug("stop failed", e); }
         }
@@ -175,6 +191,39 @@ public final class BeatLinkService implements PlayerSource {
 
     public TrackMetadata metadataFor(int player) {
         return metadataFinder.isRunning() ? metadataFinder.getLatestMetadataFor(player) : null;
+    }
+
+    @Override
+    public Model.Waveform waveform(int player) {
+        String key = waveformKey(player, metadataFor(player));
+        if (key == null) return null;
+        Model.Waveform cached = waveformCache.get(player);
+        if (cached != null && cached.key().equals(key)) return cached;
+        TrackMetadata md = metadataFor(player);
+        Model.Waveform w = WaveformEncoder.encode(key,
+                waveformFinder.isRunning() ? waveformFinder.getLatestPreviewFor(player) : null,
+                waveformFinder.isRunning() ? waveformFinder.getLatestDetailFor(player) : null,
+                beatGridFinder.isRunning() ? beatGridFinder.getLatestBeatGridFor(player) : null,
+                md != null ? md.getCueList() : null,
+                md != null ? md.getDuration() * 1000L : 0);
+        waveformCache.put(player, w);
+        return w;
+    }
+
+    /**
+     * 波形関連データの版を表すキー。取得済みのデータが増えるたびに変わるので、ブラウザはキーが変わったら取り直す。
+     * 何も取れていなければ null。
+     */
+    private String waveformKey(int player, TrackMetadata md) {
+        WaveformPreview preview = waveformFinder.isRunning() ? waveformFinder.getLatestPreviewFor(player) : null;
+        WaveformDetail detail = waveformFinder.isRunning() ? waveformFinder.getLatestDetailFor(player) : null;
+        BeatGrid grid = beatGridFinder.isRunning() ? beatGridFinder.getLatestBeatGridFor(player) : null;
+        if (preview == null && detail == null && grid == null) return null;
+        return player + "-" + (md != null ? md.trackReference.rekordboxId : 0)
+                + "-p" + (preview != null ? System.identityHashCode(preview) : 0)
+                + "-d" + (detail != null ? System.identityHashCode(detail) : 0)
+                + "-g" + (grid != null ? System.identityHashCode(grid) : 0)
+                + "-c" + (md != null && md.getCueList() != null ? md.getCueList().entries.size() : 0);
     }
 
     /** 現在の全プレイヤー状態のスナップショットを作る。 */
@@ -261,7 +310,8 @@ public final class BeatLinkService implements PlayerSource {
                     md.getTempo() / 100.0,
                     s.getTrackSourcePlayer(),
                     slotName(s, owner),
-                    artKey);
+                    artKey,
+                    waveformKey(n, md));
         }
         return new Model.Player(
                 n,

@@ -17,6 +17,7 @@ public record Config(
         LinkService.Mode linkMode,
         int linkLatencyMs,
         boolean linkAlignBars,
+        String waveformStyle,
         boolean demo) {
 
     public static Config fromEnv() {
@@ -32,6 +33,7 @@ public record Config(
                 LinkService.Mode.valueOf(env("PLMUX_LINK_MODE", "OFF").toUpperCase()),
                 intEnv("PLMUX_LINK_LATENCY_MS", 1),
                 boolEnv("PLMUX_LINK_ALIGN_BARS", true),
+                env("PLMUX_WAVEFORM_STYLE", "RGB").toUpperCase(),
                 boolEnv("PLMUX_DEMO", false));
     }
 

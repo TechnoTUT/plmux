@@ -17,7 +17,8 @@ public final class Model {
             double bpm,
             int sourcePlayer,
             String sourceSlot,
-            String artKey) {}
+            String artKey,
+            String waveformKey) {}
 
     public record Player(
             int number,
@@ -55,6 +56,35 @@ public final class Model {
             List<Device> otherDevices,
             List<String> warnings,
             LinkStatus link) {}
+
+    /**
+     * 波形・ビートグリッド・キューをまとめたもの。ブラウザが canvas に描画する。
+     *
+     * <p>{@code detail.data} / {@code preview.data} は Base64 のバイト列で、1 区間あたり {@code stride} バイト:
+     * <ul>
+     *   <li>BLUE / RGB detail: [高さ 0-31, R, G, B] (1 区間 = 1/150 秒)</li>
+     *   <li>THREE_BAND detail: [低域, 中域, 高域] の高さ (それぞれ独立)</li>
+     *   <li>BLUE preview: [高さ, R, G, B]</li>
+     *   <li>RGB preview: [奥の高さ, R, G, B, 手前の高さ, R, G, B]</li>
+     *   <li>THREE_BAND preview: [低域, 低+中, 低+中+高] の累積高さ</li>
+     * </ul>
+     */
+    public record Waveform(
+            String key,
+            String style,
+            long durationMs,
+            WavePreview preview,
+            WaveDetail detail,
+            int[] beatTimesMs,
+            int[] beatsWithinBar,
+            List<Cue> cues) {}
+
+    public record WavePreview(int segments, int maxHeight, int stride, String data) {}
+
+    public record WaveDetail(int frames, int stride, String data) {}
+
+    /** hotCue が 0 ならメモリーポイント。endMs があればループ。 */
+    public record Cue(long timeMs, Long endMs, int hotCue, String color, String comment) {}
 
     public record Session(long id, String name, long startedAt, Long endedAt, int trackCount) {}
 
