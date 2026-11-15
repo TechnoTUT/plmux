@@ -99,6 +99,11 @@ export interface LinkSettings {
 
 export type WaveformStyle = 'BLUE' | 'RGB' | 'THREE_BAND'
 
+export interface Settings {
+  waveformStyle: WaveformStyle
+  waveformStyles: WaveformStyle[]
+}
+
 /** hotCue が 0 ならメモリーポイント、endMs があればループ */
 export interface Cue {
   timeMs: number

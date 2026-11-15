@@ -7,15 +7,17 @@ import LinkPanel from './components/LinkPanel.vue'
 import HistoryPanel from './components/HistoryPanel.vue'
 import StatusPanel from './components/StatusPanel.vue'
 import RecentTracks from './components/RecentTracks.vue'
+import SettingsPanel from './components/SettingsPanel.vue'
 
 const { state, connected } = useLive()
 const { dark, toggle } = useTheme()
 
-type Tab = 'decks' | 'history' | 'link'
+type Tab = 'decks' | 'history' | 'link' | 'settings'
 const tabs: { id: Tab; label: string }[] = [
   { id: 'decks', label: 'Decks' },
   { id: 'history', label: 'History' },
   { id: 'link', label: 'Ableton Link' },
+  { id: 'settings', label: 'Settings' },
 ]
 // タブは URL の #history のように指定でき、ブックマークやブース用ディスプレイで固定表示できる
 function tabFromHash(): Tab {
@@ -30,7 +32,8 @@ const online = computed(() => connected.value && !!state.value?.djLinkOnline)
 const anyPlaying = computed(() => state.value?.players.some((p) => p.playing && p.onAir) ?? false)
 const link = computed(() => state.value?.link)
 
-function tabDot(id: Tab): string {
+function tabDot(id: Tab): string | null {
+  if (id === 'settings') return null
   if (id === 'decks') return online.value ? (anyPlaying.value ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-400') : 'bg-amber-400'
   if (id === 'link') {
     if (!link.value || link.value.mode === 'OFF') return 'bg-slate-300 dark:bg-slate-600'
@@ -72,7 +75,7 @@ function tabDot(id: Tab): string {
             ]"
           >
             <span>{{ t.label }}</span>
-            <span class="h-2 w-2 rounded-full" :class="tabDot(t.id)" />
+            <span v-if="tabDot(t.id)" class="h-2 w-2 rounded-full" :class="tabDot(t.id)!" />
           </button>
         </nav>
 
@@ -152,6 +155,9 @@ function tabDot(id: Tab): string {
 
       <!-- ==================== TAB: Ableton Link ==================== -->
       <LinkPanel v-show="activeTab === 'link'" :status="state?.link ?? null" />
+
+      <!-- ==================== TAB: Settings ==================== -->
+      <SettingsPanel v-show="activeTab === 'settings'" />
     </main>
   </div>
 </template>
