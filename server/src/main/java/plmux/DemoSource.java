@@ -191,7 +191,7 @@ public final class DemoSource implements PlayerSource {
             Model.Track track = metadataReady
                     ? new Model.Track(1000 + d.trackIndex, t.title(), t.artist(), t.album(), t.genre(), t.key(),
                             t.durationSec(), t.bpm(), d.number, d.number % 2 == 1 ? "USB 1" : "USB 2",
-                            "demo-" + d.number + "-" + d.trackIndex, "demo-wf-" + d.trackIndex)
+                            "demo-" + d.number + "-" + d.trackIndex, "demo-wf-" + d.trackIndex + "-" + waveformStyle)
                     : null;
             double bpm = d.synced || d.master ? masterBpm : t.bpm();
             if (d.master) masterPlayer = d.number;
@@ -216,9 +216,13 @@ public final class DemoSource implements PlayerSource {
         return artCache.computeIfAbsent(trackIndex, DemoSource::renderArt);
     }
 
+    private volatile String waveformStyle = "THREE_BAND";
+
     @Override
     public void setWaveformStyle(String style) {
-        // デモ側の対応は別途
+        if (style.equals(waveformStyle)) return;
+        waveformStyle = style;
+        for (Runnable r : changeListeners) r.run();
     }
 
     @Override
@@ -230,10 +234,11 @@ public final class DemoSource implements PlayerSource {
             if (!d.loaded || System.currentTimeMillis() < d.metadataReadyAt) return null;
             trackIndex = d.trackIndex;
         }
-        return waveformCache.computeIfAbsent(trackIndex, DemoSource::generateWaveform);
+        String style = waveformStyle;
+        return waveformCache.computeIfAbsent(trackIndex + "-" + style, k -> generateWaveform(trackIndex, style));
     }
 
-    private final Map<Integer, Model.Waveform> waveformCache = new ConcurrentHashMap<>();
+    private final Map<String, Model.Waveform> waveformCache = new ConcurrentHashMap<>();
 
     /** 16 小節ごとの構成。インデックスを超えた分はアウトロ扱い。 */
     private enum Section { INTRO, BUILD, DROP, BREAK, OUTRO }
@@ -242,17 +247,9 @@ public final class DemoSource implements PlayerSource {
             Section.INTRO, Section.BUILD, Section.DROP, Section.DROP,
             Section.BREAK, Section.BUILD, Section.DROP, Section.DROP };
 
-    /**
-     * 曲の構成を模した波形を生成する。スタイルは曲ごとに THREE_BAND / RGB / BLUE を割り当て、
-     * どの描画経路も確認できるようにしている。
-     */
-    private static Model.Waveform generateWaveform(int trackIndex) {
+    /** 曲の構成を模した波形を、設定された表示形式 (THREE_BAND / RGB / BLUE) で生成する。 */
+    private static Model.Waveform generateWaveform(int trackIndex, String style) {
         DemoTrack t = TRACKS.get(trackIndex);
-        String style = switch (trackIndex % 3) {
-            case 0 -> "THREE_BAND";
-            case 1 -> "RGB";
-            default -> "BLUE";
-        };
         java.util.Random rnd = new java.util.Random(trackIndex * 7919L);
         int frames = t.durationSec() * 150;
         double beatFrames = 150.0 * 60.0 / t.bpm();
@@ -354,7 +351,7 @@ public final class DemoSource implements PlayerSource {
                 new Model.Cue(bar * 96, bar * 100, 0, "#ff8c00", "Outro loop")));
         cues.removeIf(c -> c.timeMs() > t.durationSec() * 1000L);
 
-        return new Model.Waveform("demo-wf-" + trackIndex, style, t.durationSec() * 1000L,
+        return new Model.Waveform("demo-wf-" + trackIndex + "-" + style, style, t.durationSec() * 1000L,
                 new Model.WavePreview(segments, 31, pStride, WaveformEncoder.b64(preview)),
                 new Model.WaveDetail(frames, stride, WaveformEncoder.b64(detail)),
                 beatTimes, beatsWithinBar, cues);
