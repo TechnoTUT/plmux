@@ -191,7 +191,7 @@ public final class DemoSource implements PlayerSource {
             Model.Track track = metadataReady
                     ? new Model.Track(1000 + d.trackIndex, t.title(), t.artist(), t.album(), t.genre(), t.key(),
                             t.durationSec(), t.bpm(), d.number, d.number % 2 == 1 ? "USB 1" : "USB 2",
-                            "demo-" + d.number + "-" + d.trackIndex, null)
+                            "demo-" + d.number + "-" + d.trackIndex, "demo-wf-" + d.trackIndex)
                     : null;
             double bpm = d.synced || d.master ? masterBpm : t.bpm();
             if (d.master) masterPlayer = d.number;
@@ -218,7 +218,152 @@ public final class DemoSource implements PlayerSource {
 
     @Override
     public Model.Waveform waveform(int player) {
-        return null;
+        if (player < 1 || player > 4) return null;
+        int trackIndex;
+        synchronized (this) {
+            Deck d = decks[player - 1];
+            if (!d.loaded || System.currentTimeMillis() < d.metadataReadyAt) return null;
+            trackIndex = d.trackIndex;
+        }
+        return waveformCache.computeIfAbsent(trackIndex, DemoSource::generateWaveform);
+    }
+
+    private final Map<Integer, Model.Waveform> waveformCache = new ConcurrentHashMap<>();
+
+    /** 16 小節ごとの構成。インデックスを超えた分はアウトロ扱い。 */
+    private enum Section { INTRO, BUILD, DROP, BREAK, OUTRO }
+
+    private static final Section[] STRUCTURE = {
+            Section.INTRO, Section.BUILD, Section.DROP, Section.DROP,
+            Section.BREAK, Section.BUILD, Section.DROP, Section.DROP };
+
+    /**
+     * 曲の構成を模した波形を生成する。スタイルは曲ごとに THREE_BAND / RGB / BLUE を割り当て、
+     * どの描画経路も確認できるようにしている。
+     */
+    private static Model.Waveform generateWaveform(int trackIndex) {
+        DemoTrack t = TRACKS.get(trackIndex);
+        String style = switch (trackIndex % 3) {
+            case 0 -> "THREE_BAND";
+            case 1 -> "RGB";
+            default -> "BLUE";
+        };
+        java.util.Random rnd = new java.util.Random(trackIndex * 7919L);
+        int frames = t.durationSec() * 150;
+        double beatFrames = 150.0 * 60.0 / t.bpm();
+        double[] low = new double[frames], mid = new double[frames], high = new double[frames];
+        for (int f = 0; f < frames; f++) {
+            double beatPos = f / beatFrames;
+            int block = (int) (beatPos / 64);
+            Section sec = block < STRUCTURE.length ? STRUCTURE[block] : Section.OUTRO;
+            double inBlock = (beatPos % 64) / 64.0;
+            double phase = beatPos - Math.floor(beatPos);
+            double off = (phase + 0.5) % 1.0;
+            boolean kick = sec != Section.BREAK;
+            double kickEnv = kick ? 27 * Math.exp(-phase * 7) : 0;
+            double bass = (sec == Section.DROP || sec == Section.BUILD) ? 12 * Math.exp(-off * 5) : 3;
+            double pad = switch (sec) {
+                case INTRO, OUTRO -> 5;
+                case BUILD -> 6 + 10 * inBlock;
+                case DROP -> 15;
+                case BREAK -> 18;
+            } + 4 * Math.sin(beatPos * Math.PI / 8);
+            double hat = switch (sec) {
+                case INTRO, OUTRO -> 5;
+                case BUILD -> 4 + 9 * inBlock;
+                case DROP -> 11;
+                case BREAK -> 3;
+            } * Math.exp(-off * 14);
+            low[f] = Math.min(31, kickEnv + bass + rnd.nextDouble() * 2);
+            mid[f] = Math.min(31, Math.max(0, pad + rnd.nextGaussian() * 1.5));
+            high[f] = Math.min(31, hat + rnd.nextDouble() * 2.5);
+        }
+
+        int stride = style.equals("THREE_BAND") ? 3 : 4;
+        byte[] detail = new byte[frames * stride];
+        for (int f = 0; f < frames; f++) {
+            int at = f * stride;
+            if (style.equals("THREE_BAND")) {
+                detail[at] = (byte) Math.round(low[f]);
+                detail[at + 1] = (byte) Math.round(mid[f] * 0.8);
+                detail[at + 2] = (byte) Math.round(high[f] * 0.6);
+            } else {
+                double h = Math.min(31, Math.max(low[f], Math.max(mid[f], high[f])) + 2);
+                int[] rgb = style.equals("RGB") ? rgbFor(low[f], mid[f], high[f]) : blueFor(h);
+                detail[at] = (byte) Math.round(h);
+                detail[at + 1] = (byte) rgb[0];
+                detail[at + 2] = (byte) rgb[1];
+                detail[at + 3] = (byte) rgb[2];
+            }
+        }
+
+        int segments = style.equals("BLUE") ? 400 : 1200;
+        int pStride = switch (style) { case "THREE_BAND" -> 3; case "RGB" -> 8; default -> 4; };
+        byte[] preview = new byte[segments * pStride];
+        for (int i = 0; i < segments; i++) {
+            int from = (int) ((long) i * frames / segments), to = Math.max(from + 1, (int) ((long) (i + 1) * frames / segments));
+            double l = 0, m = 0, h = 0, peak = 0;
+            for (int f = from; f < to; f++) {
+                l += low[f]; m += mid[f]; h += high[f];
+                peak = Math.max(peak, Math.max(low[f], Math.max(mid[f], high[f])));
+            }
+            int n = to - from;
+            l /= n; m /= n; h /= n;
+            int at = i * pStride;
+            switch (style) {
+                case "THREE_BAND" -> {
+                    preview[at] = (byte) Math.round(l * 0.55);
+                    preview[at + 1] = (byte) Math.round((l + m) * 0.55);
+                    preview[at + 2] = (byte) Math.round(Math.min(31, (l + m + h) * 0.55));
+                }
+                case "RGB" -> {
+                    int[] c = rgbFor(l, m, h);
+                    preview[at] = (byte) Math.round(peak);
+                    preview[at + 1] = (byte) (c[0] * 3 / 4); preview[at + 2] = (byte) (c[1] * 3 / 4); preview[at + 3] = (byte) (c[2] * 3 / 4);
+                    preview[at + 4] = (byte) Math.round((l + m + h) / 2.2);
+                    preview[at + 5] = (byte) c[0]; preview[at + 6] = (byte) c[1]; preview[at + 7] = (byte) c[2];
+                }
+                default -> {
+                    double avg = Math.min(31, (l + m + h) / 1.8);
+                    int[] c = blueFor(avg);
+                    preview[at] = (byte) Math.round(avg);
+                    preview[at + 1] = (byte) c[0]; preview[at + 2] = (byte) c[1]; preview[at + 3] = (byte) c[2];
+                }
+            }
+        }
+
+        double beatMs = 60_000.0 / t.bpm();
+        int beatCount = (int) (t.durationSec() * 1000 / beatMs);
+        int[] beatTimes = new int[beatCount];
+        int[] beatsWithinBar = new int[beatCount];
+        for (int i = 0; i < beatCount; i++) {
+            beatTimes[i] = (int) Math.round(i * beatMs);
+            beatsWithinBar[i] = i % 4 + 1;
+        }
+        long bar = Math.round(beatMs * 4);
+        List<Model.Cue> cues = new ArrayList<>(List.of(
+                new Model.Cue(0, null, 1, "#30d26e", null),
+                new Model.Cue(bar * 32, null, 2, "#e62828", "Drop"),
+                new Model.Cue(bar * 64, null, 3, "#305aff", "Break"),
+                new Model.Cue(bar * 16, null, 0, "#e6aa1e", null),
+                new Model.Cue(bar * 96, bar * 100, 0, "#ff8c00", "Outro loop")));
+        cues.removeIf(c -> c.timeMs() > t.durationSec() * 1000L);
+
+        return new Model.Waveform("demo-wf-" + trackIndex, style, t.durationSec() * 1000L,
+                new Model.WavePreview(segments, 31, pStride, WaveformEncoder.b64(preview)),
+                new Model.WaveDetail(frames, stride, WaveformEncoder.b64(detail)),
+                beatTimes, beatsWithinBar, cues);
+    }
+
+    /** CDJ の RGB 波形に倣い、低域=赤、中域=緑、高域=青で色を決める。 */
+    private static int[] rgbFor(double low, double mid, double high) {
+        double max = Math.max(1, Math.max(low, Math.max(mid, high)));
+        return new int[]{(int) (255 * low / max), (int) (200 * mid / max), (int) (255 * high / max)};
+    }
+
+    private static int[] blueFor(double h) {
+        int v = (int) Math.min(255, 120 + h * 4);
+        return new int[]{0, v * 3 / 4, v};
     }
 
     /** 曲ごとに色の違う抽象的なジャケット画像を生成する。 */
