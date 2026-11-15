@@ -161,6 +161,13 @@ public final class Main {
 
         app.get("/healthz", ctx -> ctx.result("ok"));
 
+        // OBS のブラウザソース用。Vite で別エントリとしてビルドした overlay.html を返す
+        // (spaRoot の "/" が先にマッチするので明示的なルートにしている)
+        if (hasWeb) {
+            app.get("/overlay", ctx -> ctx.contentType("text/html; charset=utf-8")
+                    .result(Main.class.getResourceAsStream("/public/overlay.html")));
+        }
+
         app.ws("/ws", ws -> {
             ws.onConnect(ctx -> {
                 clients.add(ctx);
@@ -207,6 +214,7 @@ public final class Main {
                 settings.put("waveformStyle", s);
                 source.setWaveformStyle(s);
             }
+            if (u.overlay() != null) OverlaySettings.save(settings, u.overlay());
             if (u.linkStartupMode() != null) {
                 try {
                     LinkService.Mode m = LinkService.Mode.valueOf(u.linkStartupMode().toUpperCase());
@@ -215,7 +223,10 @@ public final class Main {
                     throw new BadRequestResponse("linkStartupMode must be one of OFF, MONITOR, FOLLOW");
                 }
             }
-            ctx.json(settingsBody());
+            Map<String, Object> body = settingsBody();
+            // 表示中のオーバーレイにも即時反映させる
+            broadcast("settings", body);
+            ctx.json(body);
         });
 
         app.get("/api/sessions", ctx -> {
@@ -249,12 +260,13 @@ public final class Main {
 
     record SessionCreate(String name) {}
 
-    record SettingsUpdate(String waveformStyle, String linkStartupMode) {}
+    record SettingsUpdate(String waveformStyle, String linkStartupMode, OverlaySettings.Update overlay) {}
 
     private Map<String, Object> settingsBody() throws SQLException {
         return Map.of("waveformStyle", settings.get("waveformStyle", config.waveformStyle()),
                 "waveformStyles", WAVEFORM_STYLES,
-                "linkStartupMode", linkStartupMode().name());
+                "linkStartupMode", linkStartupMode().name(),
+                "overlay", OverlaySettings.load(settings));
     }
 
     /** 起動時に適用する Link モード。GUI で保存した値があればそれを、なければ PLMUX_LINK_MODE を使う。 */
