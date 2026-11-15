@@ -11,4 +11,5 @@ data:
   PLMUX_LINK_MODE: "OFF"           # OFF / MONITOR / FOLLOW (GUI からも変更可)
   PLMUX_LINK_LATENCY_MS: "1"
   PLMUX_LINK_ALIGN_BARS: "true"
+  PLMUX_WAVEFORM_STYLE: "THREE_BAND" # THREE_BAND / RGB / BLUE
   PLMUX_CARABINER_EMBEDDED: "true" # x86_64 ノードのみ。arm64 では Carabiner を別途起動して false に

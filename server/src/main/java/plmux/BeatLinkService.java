@@ -76,7 +76,7 @@ public final class BeatLinkService implements PlayerSource {
         try {
             waveformFinder.setPreferredStyle(WaveformFinder.WaveformStyle.valueOf(config.waveformStyle()));
         } catch (IllegalArgumentException e) {
-            log.warn("Unknown PLMUX_WAVEFORM_STYLE {}, using RGB", config.waveformStyle());
+            log.warn("Unknown PLMUX_WAVEFORM_STYLE {}, using beat-link default (RGB)", config.waveformStyle());
         }
 
         deviceFinder.addDeviceAnnouncementListener(new DeviceAnnouncementListener() {

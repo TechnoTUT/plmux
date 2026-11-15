@@ -73,7 +73,7 @@ docker run --network host -v plmux-data:/data plmux
 | `PLMUX_LINK_MODE` | `OFF` | Initial Link mode: `OFF` / `MONITOR` / `FOLLOW` (can be changed from the GUI) |
 | `PLMUX_LINK_LATENCY_MS` | `1` | Latency compensation for beat packets |
 | `PLMUX_LINK_ALIGN_BARS` | `true` | Align bars, not just beats |
-| `PLMUX_WAVEFORM_STYLE` | `RGB` | Preferred waveform style: `RGB` / `THREE_BAND` / `BLUE` (falls back if the player cannot provide it) |
+| `PLMUX_WAVEFORM_STYLE` | `THREE_BAND` | Preferred waveform style: `THREE_BAND` / `RGB` / `BLUE` (falls back if the player cannot provide it) |
 | `PLMUX_CARABINER_PORT` | `17000` | Carabiner port |
 | `PLMUX_CARABINER_EMBEDDED` | `true` | Launch the bundled Carabiner binary if none is running |
 | `PLMUX_DEMO` | `false` | Serve dummy data instead of connecting to DJ Link (for GUI testing) |

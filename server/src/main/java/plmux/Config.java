@@ -33,7 +33,7 @@ public record Config(
                 LinkService.Mode.valueOf(env("PLMUX_LINK_MODE", "OFF").toUpperCase()),
                 intEnv("PLMUX_LINK_LATENCY_MS", 1),
                 boolEnv("PLMUX_LINK_ALIGN_BARS", true),
-                env("PLMUX_WAVEFORM_STYLE", "RGB").toUpperCase(),
+                env("PLMUX_WAVEFORM_STYLE", "THREE_BAND").toUpperCase(),
                 boolEnv("PLMUX_DEMO", false));
     }
 
