@@ -32,7 +32,7 @@ public final class DemoSource implements PlayerSource {
     private record DemoTrack(String title, String artist, String album, String genre, String key, double bpm, int durationSec) {}
 
     private static final List<DemoTrack> TRACKS = List.of(
-            new DemoTrack("Midnight Circuit", "Kaito Sora", "Night Drive EP", "Techno", "8A", 124.0, 372),
+            new DemoTrack("Midnight Circuit (Kaito Sora's Extended Night Drive Remix)", "Kaito Sora feat. Mira Hoshino & Tokyo Static", "Night Drive EP", "Techno", "8A", 124.0, 372),
             new DemoTrack("Neon Rain", "Lumen Fields", "Neon Rain", "Deep House", "5A", 122.0, 401),
             new DemoTrack("Subway Pulse", "Undergroove", "Transit", "Tech House", "11B", 126.0, 344),
             new DemoTrack("Afterglow Theory", "Mira Hoshino", "Afterglow", "Melodic Techno", "2A", 125.0, 455),
