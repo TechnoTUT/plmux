@@ -7,6 +7,7 @@ import org.deepsymmetry.beatlink.data.WaveformDetail;
 import org.deepsymmetry.beatlink.data.WaveformFinder.ThreeBandLayer;
 import org.deepsymmetry.beatlink.data.WaveformFinder.WaveformStyle;
 import org.deepsymmetry.beatlink.data.WaveformPreview;
+import org.deepsymmetry.cratedigger.pdb.RekordboxAnlz;
 
 import java.awt.Color;
 import java.util.ArrayList;
@@ -22,7 +23,8 @@ final class WaveformEncoder {
     private WaveformEncoder() {}
 
     static Model.Waveform encode(String key, WaveformPreview preview, WaveformDetail detail,
-                                 BeatGrid grid, CueList cues, long durationMs) {
+                                 BeatGrid grid, CueList cues, RekordboxAnlz.SongStructureTag structure,
+                                 long durationMs) {
         WaveformStyle style = detail != null ? detail.style : preview != null ? preview.style : WaveformStyle.RGB;
         int[] beatTimes = new int[0];
         int[] beatsWithinBar = new int[0];
@@ -38,7 +40,7 @@ final class WaveformEncoder {
         return new Model.Waveform(key, style.name(), durationMs,
                 preview != null ? encodePreview(preview) : null,
                 detail != null ? encodeDetail(detail) : null,
-                beatTimes, beatsWithinBar, encodeCues(cues));
+                beatTimes, beatsWithinBar, encodeCues(cues), encodePhrases(structure));
     }
 
     static Model.WaveDetail encodeDetail(WaveformDetail detail) {
@@ -98,11 +100,36 @@ final class WaveformEncoder {
         if (cues == null) return out;
         for (CueList.Entry e : cues.entries) {
             Color c = e.getColor();
-            out.add(new Model.Cue(e.cueTime, e.isLoop ? e.loopTime : null, e.hotCueNumber,
-                    c == null ? null : String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue()),
+            out.add(new Model.Cue(e.cueTime, e.isLoop ? e.loopTime : null, e.hotCueNumber, hex(c),
                     e.comment == null || e.comment.isBlank() ? null : e.comment));
         }
         return out;
+    }
+
+    /** 表記は beat-link (BLT) の {@link Util#phraseLabel} / {@link Util#phraseColor} に任せる。 */
+    static List<Model.Phrase> encodePhrases(RekordboxAnlz.SongStructureTag structure) {
+        List<Model.Phrase> out = new ArrayList<>();
+        if (structure == null) return out;
+        List<RekordboxAnlz.SongStructureEntry> entries = structure.body().entries();
+        for (int i = 0; i < entries.size(); i++) {
+            RekordboxAnlz.SongStructureEntry e = entries.get(i);
+            int end = i == entries.size() - 1 ? structure.body().endBeat() : entries.get(i + 1).beat();
+            String label = Util.phraseLabel(e);
+            out.add(new Model.Phrase(e.beat(), end, phraseKind(label), label,
+                    structure.body().mood() != null ? structure.body().mood().name() : null, hex(Util.phraseColor(e))));
+        }
+        return out;
+    }
+
+    /** "Verse 2" → "verse"、"Up 1" → "up"。beat-link が知らないフレーズ ("Unknown High" など) なら null。 */
+    static String phraseKind(String label) {
+        if (label == null || label.startsWith("Unknown")) return null;
+        String kind = label.replaceAll("\\s*\\d+$", "").trim().toLowerCase(java.util.Locale.ROOT);
+        return kind.isEmpty() ? null : kind;
+    }
+
+    private static String hex(Color c) {
+        return c == null ? null : String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
     }
 
     /** 1 区間 (half frame) の長さ。150 区間で 1 秒。 */

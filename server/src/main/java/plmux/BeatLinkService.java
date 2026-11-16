@@ -2,6 +2,7 @@ package plmux;
 
 import org.deepsymmetry.beatlink.*;
 import org.deepsymmetry.beatlink.data.*;
+import org.deepsymmetry.cratedigger.pdb.RekordboxAnlz;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +40,10 @@ public final class BeatLinkService implements PlayerSource {
     private final TimeFinder timeFinder = TimeFinder.getInstance();
     private final BeatGridFinder beatGridFinder = BeatGridFinder.getInstance();
     private final WaveformFinder waveformFinder = WaveformFinder.getInstance();
+    /** rekordbox のフレーズ解析 (曲の構成)。拡張解析ファイル (.EXT) の PSSI タグにある。 */
+    private final AnalysisTagFinder analysisTagFinder = AnalysisTagFinder.getInstance();
+    private static final String PHRASE_FILE = ".EXT";
+    private static final String PHRASE_TAG = "PSSI";
     /** プレイヤーごとに直近にエンコードした波形 (waveformKey が変わるまで使い回す) */
     private final Map<Integer, Model.Waveform> waveformCache = new ConcurrentHashMap<>();
 
@@ -94,6 +99,8 @@ public final class BeatLinkService implements PlayerSource {
             @Override public void previewChanged(WaveformPreviewUpdate update) { fireChange(); }
             @Override public void detailChanged(WaveformDetailUpdate update) { fireChange(); }
         });
+        // リスナーを登録したタグだけを AnalysisTagFinder が取りに行く
+        analysisTagFinder.addAnalysisTagListener(update -> fireChange(), PHRASE_FILE, PHRASE_TAG);
         beatFinder.addBeatListener(beat -> {
             // These Beat accessors consult the VirtualCdj's latest status for the deck, so beats that arrive before
             // the VirtualCdj is running or before that deck's first status packet would throw. Skip them.
@@ -137,6 +144,7 @@ public final class BeatLinkService implements PlayerSource {
             startIfNeeded(timeFinder::isRunning, timeFinder::start, "TimeFinder");
             startIfNeeded(beatGridFinder::isRunning, beatGridFinder::start, "BeatGridFinder");
             startIfNeeded(waveformFinder::isRunning, waveformFinder::start, "WaveformFinder");
+            startIfNeeded(analysisTagFinder::isRunning, analysisTagFinder::start, "AnalysisTagFinder");
             updateXdjAzMode();
             fireChange();
         } catch (Exception e) {
@@ -173,7 +181,7 @@ public final class BeatLinkService implements PlayerSource {
         // DeviceFinder is deliberately left running: this is only called at JVM shutdown, and stopping it announces
         // every device as lost, which makes CrateDigger's (still registered) unmount listener call the stopped
         // DeviceFinder and log a warning. Its sockets are closed when the process exits anyway.
-        for (Runnable r : List.<Runnable>of(waveformFinder::stop, beatGridFinder::stop, timeFinder::stop, artFinder::stop, crateDigger::stop,
+        for (Runnable r : List.<Runnable>of(analysisTagFinder::stop, waveformFinder::stop, beatGridFinder::stop, timeFinder::stop, artFinder::stop, crateDigger::stop,
                 metadataFinder::stop, beatFinder::stop, virtualCdj::stop)) {
             try { r.run(); } catch (Exception e) { log.debug("stop failed", e); }
         }
@@ -219,9 +227,17 @@ public final class BeatLinkService implements PlayerSource {
                 waveformFinder.isRunning() ? waveformFinder.getLatestDetailFor(player) : null,
                 beatGridFinder.isRunning() ? beatGridFinder.getLatestBeatGridFor(player) : null,
                 md != null ? md.getCueList() : null,
+                songStructure(player),
                 md != null ? md.getDuration() * 1000L : 0);
         waveformCache.put(player, w);
         return w;
+    }
+
+    private RekordboxAnlz.SongStructureTag songStructure(int player) {
+        if (!analysisTagFinder.isRunning()) return null;
+        var section = analysisTagFinder.getLatestTrackAnalysisFor(player, PHRASE_FILE, PHRASE_TAG);
+        return section != null && section.body() instanceof RekordboxAnlz.SongStructureTag t
+                ? t : null;
     }
 
     /**
@@ -232,11 +248,13 @@ public final class BeatLinkService implements PlayerSource {
         WaveformPreview preview = waveformFinder.isRunning() ? waveformFinder.getLatestPreviewFor(player) : null;
         WaveformDetail detail = waveformFinder.isRunning() ? waveformFinder.getLatestDetailFor(player) : null;
         BeatGrid grid = beatGridFinder.isRunning() ? beatGridFinder.getLatestBeatGridFor(player) : null;
+        var structure = songStructure(player);
         if (preview == null && detail == null && grid == null) return null;
         return player + "-" + (md != null ? md.trackReference.rekordboxId : 0)
                 + "-p" + (preview != null ? System.identityHashCode(preview) : 0)
                 + "-d" + (detail != null ? System.identityHashCode(detail) : 0)
                 + "-g" + (grid != null ? System.identityHashCode(grid) : 0)
+                + "-s" + (structure != null ? System.identityHashCode(structure) : 0)
                 + "-c" + (md != null && md.getCueList() != null ? md.getCueList().entries.size() : 0);
     }
 

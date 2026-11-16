@@ -70,6 +70,8 @@ public final class Model {
      *   <li>RGB preview: [奥の高さ, R, G, B, 手前の高さ, R, G, B]</li>
      *   <li>THREE_BAND preview: [低域, 低+中, 低+中+高] の累積高さ</li>
      * </ul>
+     *
+     * <p>{@code phrases} は rekordbox のフレーズ解析 (曲の構成)。解析されていない曲や、まだ取れていなければ空。
      */
     public record Waveform(
             String key,
@@ -79,7 +81,44 @@ public final class Model {
             WaveDetail detail,
             int[] beatTimesMs,
             int[] beatsWithinBar,
-            List<Cue> cues) {}
+            List<Cue> cues,
+            List<Phrase> phrases) {
+
+        /** 曲の先頭からの時刻 (ms) にある拍の番号 (1 始まり)。ビートグリッドがないか、最初の拍より前なら 0。 */
+        public int beatAt(double timeMs) {
+            int lo = 0, hi = beatTimesMs.length - 1, found = -1;
+            while (lo <= hi) {
+                int mid = (lo + hi) >>> 1;
+                if (beatTimesMs[mid] <= timeMs) {
+                    found = mid;
+                    lo = mid + 1;
+                } else {
+                    hi = mid - 1;
+                }
+            }
+            return found + 1;
+        }
+
+        /** その拍 (1 始まり) を含むフレーズ。なければ null。 */
+        public Phrase phraseAt(int beat) {
+            for (Phrase p : phrases) {
+                if (beat >= p.beat() && beat < p.endBeat()) return p;
+            }
+            return null;
+        }
+    }
+
+    /**
+     * 曲の構成の 1 区間 (rekordbox のフレーズ)。
+     *
+     * @param beat    始まりの拍 (1 始まり)
+     * @param endBeat 終わりの拍 (この拍は含まない)
+     * @param kind    種類 (intro / verse / bridge / chorus / up / down / outro)。分からなければ null
+     * @param label   rekordbox と同じ表記 ("Verse 2", "Up 1" など)
+     * @param mood    曲の雰囲気 (LOW / MID / HIGH)。種類と表記はこれによって変わる
+     * @param color   rekordbox がフレーズの表示に使う色 (#rrggbb)
+     */
+    public record Phrase(int beat, int endBeat, String kind, String label, String mood, String color) {}
 
     public record WavePreview(int segments, int maxHeight, int stride, String data) {}
 
