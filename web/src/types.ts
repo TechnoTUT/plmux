@@ -142,6 +142,20 @@ export interface WaveformResponse {
   beatTimesMs: number[]
   beatsWithinBar: number[]
   cues: Cue[]
+  /** rekordbox のフレーズ解析 (曲の構成)。なければ空 */
+  phrases: Phrase[]
+}
+
+/** 曲の構成の 1 区間 (server/src/main/java/plmux/Model.java の Phrase) */
+export interface Phrase {
+  /** 始まりの拍 (1 始まり) */
+  beat: number
+  /** 終わりの拍 (この拍は含まない) */
+  endBeat: number
+  kind: 'intro' | 'verse' | 'bridge' | 'chorus' | 'up' | 'down' | 'outro' | null
+  label: string
+  mood: 'LOW' | 'MID' | 'HIGH' | null
+  color: string | null
 }
 
 /** Base64 を展開済みの波形 */

@@ -242,8 +242,33 @@ public final class DemoSource implements PlayerSource {
 
     private final Map<String, Model.Waveform> waveformCache = new ConcurrentHashMap<>();
 
-    /** 16 小節ごとの構成。インデックスを超えた分はアウトロ扱い。 */
-    private enum Section { INTRO, BUILD, DROP, BREAK, OUTRO }
+    /** 16 小節ごとの構成。インデックスを超えた分はアウトロ扱い。kind / label / color は rekordbox の HIGH の曲 (beat-link の Util.phraseColor) に倣う。 */
+    private enum Section {
+        INTRO("intro", "Intro 1", "#c80000"),
+        BUILD("up", "Up 1", "#8c32ff"),
+        DROP("chorus", "Chorus 1", "#0faa00"),
+        BREAK("down", "Down", "#9b732d"),
+        OUTRO("outro", "Outro 1", "#5087c3");
+
+        final String kind, label, color;
+
+        Section(String kind, String label, String color) {
+            this.kind = kind;
+            this.label = label;
+            this.color = color;
+        }
+    }
+
+    /** 64 拍 (16 小節) ごとに 1 つのフレーズ。最後は曲の終わりまでアウトロ。 */
+    private static List<Model.Phrase> phrases(int beatCount) {
+        List<Model.Phrase> out = new ArrayList<>();
+        for (int i = 0; i <= STRUCTURE.length && i * 64 < beatCount; i++) {
+            Section sec = i < STRUCTURE.length ? STRUCTURE[i] : Section.OUTRO;
+            int end = i < STRUCTURE.length ? Math.min(beatCount, (i + 1) * 64) : beatCount;
+            out.add(new Model.Phrase(i * 64 + 1, end + 1, sec.kind, sec.label, "HIGH", sec.color));
+        }
+        return out;
+    }
 
     private static final Section[] STRUCTURE = {
             Section.INTRO, Section.BUILD, Section.DROP, Section.DROP,
@@ -356,7 +381,7 @@ public final class DemoSource implements PlayerSource {
         return new Model.Waveform("demo-wf-" + trackIndex + "-" + style, style, t.durationSec() * 1000L,
                 new Model.WavePreview(segments, 31, pStride, WaveformEncoder.b64(preview)),
                 new Model.WaveDetail(frames, stride, WaveformEncoder.b64(detail)),
-                beatTimes, beatsWithinBar, cues);
+                beatTimes, beatsWithinBar, cues, phrases(beatCount));
     }
 
     /** CDJ の RGB 波形に倣い、低域=赤、中域=緑、高域=青で色を決める。 */
