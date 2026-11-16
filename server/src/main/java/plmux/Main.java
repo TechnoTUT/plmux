@@ -43,6 +43,7 @@ public final class Main {
     private final LinkService link;
     private final HistoryService history;
     private final SettingsStore settings;
+    private final ExpressionService expressions;
     private static final List<String> WAVEFORM_STYLES = List.of("THREE_BAND", "RGB", "BLUE");
     private final Set<WsContext> clients = ConcurrentHashMap.newKeySet();
     private final AtomicBoolean dirty = new AtomicBoolean(true);
@@ -60,6 +61,7 @@ public final class Main {
         this.history = new HistoryService(config.dataDir(), config.historyMinPlaySeconds(),
                 config.historyRequireOnAir());
         this.settings = new SettingsStore(config.dataDir());
+        this.expressions = new ExpressionService(config.expressionsFile(), this::currentState, source);
     }
 
     public static void main(String[] args) throws Exception {
@@ -88,11 +90,13 @@ public final class Main {
         if (config.demo()) log.warn("DEMO MODE: not connecting to DJ Link, serving dummy data");
         source.start();
         link.start();
+        expressions.start();
         pusher.scheduleAtFixedRate(this::pushState, PUSH_INTERVAL_MS, PUSH_INTERVAL_MS, TimeUnit.MILLISECONDS);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             log.info("Shutting down");
             pusher.shutdownNow();
+            expressions.stop();
             link.stop();
             source.stop();
             app.stop();
@@ -202,6 +206,9 @@ public final class Main {
             }
             ctx.json(linkSettings());
         });
+
+        // 式はファイルでだけ編集できる (GUI には認証がないので、ここからは書き換えさせない)
+        app.get("/api/expressions", ctx -> ctx.json(expressions.status()));
 
         app.get("/api/settings", ctx -> ctx.json(settingsBody()));
         app.put("/api/settings", ctx -> {
