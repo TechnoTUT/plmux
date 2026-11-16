@@ -94,6 +94,11 @@ public final class BeatLinkService implements PlayerSource {
             @Override public void detailChanged(WaveformDetailUpdate update) { fireChange(); }
         });
         beatFinder.addBeatListener(beat -> {
+            // These Beat accessors consult the VirtualCdj's latest status for the deck, so beats that arrive before
+            // the VirtualCdj is running or before that deck's first status packet would throw. Skip them.
+            if (!virtualCdj.isRunning() || virtualCdj.getLatestStatusFor(beat) == null) {
+                return;
+            }
             BeatEvent event = new BeatEvent(beat.getDeviceNumber(),
                     beat.isBeatWithinBarMeaningful() ? beat.getBeatWithinBar() : 0,
                     round2(beat.getEffectiveTempo()), beat.isTempoMaster());
@@ -241,8 +246,10 @@ public final class BeatLinkService implements PlayerSource {
         double masterBpm = 0;
 
         Map<Integer, DeviceAnnouncement> devices = new TreeMap<>();
-        for (DeviceAnnouncement a : deviceFinder.getCurrentDevices()) {
-            devices.put(a.getDeviceNumber(), a);
+        if (deviceFinder.isRunning()) { // a GUI can request state before the supervisor has started DeviceFinder
+            for (DeviceAnnouncement a : deviceFinder.getCurrentDevices()) {
+                devices.put(a.getDeviceNumber(), a);
+            }
         }
 
         boolean online = virtualCdj.isRunning();
