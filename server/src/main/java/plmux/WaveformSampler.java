@@ -14,7 +14,7 @@ import java.util.Base64;
  *   <li>BLUE: 色には意味がないので大きさだけ</li>
  * </ul>
  */
-final class WaveformSampler {
+public final class WaveformSampler {
     /** 詳細波形の 1 秒あたりの区間数 (half frame)。 */
     static final int FRAMES_PER_SECOND = 150;
     /** 前後に平均する区間数。8 区間 ≒ 53ms なので、合わせて約 0.1 秒になる。 */
@@ -24,7 +24,7 @@ final class WaveformSampler {
      * @param rgb   0〜1 の RGB。色を出せない波形 (BLUE) なら null
      * @param level 0〜1 の大きさ
      */
-    record Sample(float[] rgb, float level) {}
+    public record Sample(float[] rgb, float level) {}
 
     private final String key;
     private final String style;
