@@ -37,7 +37,7 @@ java -jar server/target/plmux-server.jar      # http://localhost:8080
 ### Demo mode
 
 To try the GUI without any DJ equipment, start the server with `PLMUX_DEMO=true`. It does not touch the network and
-streams dummy data that mimics an XDJ-AZ in four-deck mode, advancing one mix every 64 seconds. Track history is
+streams dummy data that mimics a single XDJ-AZ in Pro DJ Link mode (two decks), advancing one mix every 64 seconds. Track history is
 recorded through the same code path as with real hardware.
 
 ```bash
@@ -100,7 +100,8 @@ docker run --network host -v plmux-data:/data plmux
 - The XDJ-AZ does not report On-Air: every channel is reported as off-air even with the faders up and ON AIR DISPLAY
   enabled. Track history therefore counts all play time on its decks (including cueing with the fader down), and
   the GUI shows On Air as `n/a`.
-- One unit sends status for four decks, so players are enumerated from status packets rather than device announcements.
+- In Pro DJ Link mode the XDJ-AZ offers only two decks (four decks are available only with Pro DJ Link mode off).
+  One unit sends status for both decks, so players are enumerated from status packets rather than device announcements.
 - On the XDJ-AZ / XDJ-XZ the slots are labelled `USB 1` / `USB 2` (same as BLT).
 
 ## Kubernetes

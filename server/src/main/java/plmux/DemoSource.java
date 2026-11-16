@@ -17,13 +17,15 @@ import java.util.function.Consumer;
 /**
  * GUI 確認用のダミーデータ源 (PLMUX_DEMO=true)。DJ Link には一切接続しない。
  *
- * <p>XDJ-AZ の 4 デッキを模して、1 サイクル {@value #CYCLE_MS} ms で次のミックスを繰り返す:
+ * <p>PRO DJ LINK モードの XDJ-AZ (2 デッキ) を模して、1 サイクル {@value #CYCLE_MS} ms で次のミックスを繰り返す:
  * 次のデッキを再生 → On-Air → マスター交代 → 前のデッキを Off-Air → 停止 → 次の曲をロード。
  * 曲履歴の記録 (HistoryService) も実機と同じ経路で動く。
  */
 public final class DemoSource implements PlayerSource {
 
     private static final long CYCLE_MS = 64_000;
+    /** XDJ-AZ 単体の PRO DJ LINK モードで使えるデッキ数。 */
+    private static final int DECKS = 2;
     private static final long TICK_MS = 20;
     private static final String MODEL = "XDJ-AZ";
     private static final String ADDRESS = "169.254.10.1";
@@ -60,7 +62,7 @@ public final class DemoSource implements PlayerSource {
         DemoTrack track() { return TRACKS.get(trackIndex); }
     }
 
-    private final Deck[] decks = new Deck[4];
+    private final Deck[] decks = new Deck[DECKS];
     private final List<Runnable> changeListeners = new CopyOnWriteArrayList<>();
     private final List<Consumer<BeatEvent>> beatListeners = new CopyOnWriteArrayList<>();
     private final Map<Integer, byte[]> artCache = new ConcurrentHashMap<>();
@@ -70,7 +72,7 @@ public final class DemoSource implements PlayerSource {
         return t;
     });
 
-    private int nextTrack = 4;
+    private int nextTrack = DECKS;
     private int current = 0;        // いま主に鳴っているデッキ (index)
     private long cycleStart;
     private long lastTick;
@@ -80,7 +82,7 @@ public final class DemoSource implements PlayerSource {
     private final boolean[] done = new boolean[8];
 
     public DemoSource() {
-        for (int i = 0; i < 4; i++) decks[i] = new Deck(i + 1, i);
+        for (int i = 0; i < DECKS; i++) decks[i] = new Deck(i + 1, i);
         Deck a = decks[0];
         a.playing = a.onAir = a.master = true;
         a.positionMs = 75_000;
@@ -144,7 +146,7 @@ public final class DemoSource implements PlayerSource {
     /** 1 サイクル内のイベントを時刻に応じて進める。 */
     private void runScenario(long t, long now) {
         Deck out = decks[current];
-        Deck in = decks[(current + 1) % 4];
+        Deck in = decks[(current + 1) % DECKS];
         if (t >= 20_000 && once(0)) {           // 次のデッキを再生開始 (SYNC)
             in.playing = true;
             in.synced = true;
@@ -169,7 +171,7 @@ public final class DemoSource implements PlayerSource {
             out.metadataReadyAt = now + 1500;
         }
         if (t >= CYCLE_MS) {                    // 次のサイクルへ
-            current = (current + 1) % 4;
+            current = (current + 1) % DECKS;
             cycleStart = now;
             java.util.Arrays.fill(done, false);
         }
@@ -208,7 +210,7 @@ public final class DemoSource implements PlayerSource {
 
     @Override
     public byte[] artwork(int player) {
-        if (player < 1 || player > 4) return null;
+        if (player < 1 || player > DECKS) return null;
         int trackIndex;
         synchronized (this) {
             trackIndex = decks[player - 1].trackIndex;
@@ -227,7 +229,7 @@ public final class DemoSource implements PlayerSource {
 
     @Override
     public Model.Waveform waveform(int player) {
-        if (player < 1 || player > 4) return null;
+        if (player < 1 || player > DECKS) return null;
         int trackIndex;
         synchronized (this) {
             Deck d = decks[player - 1];

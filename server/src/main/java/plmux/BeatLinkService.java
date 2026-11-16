@@ -20,7 +20,8 @@ import java.util.function.Consumer;
  *   <li>Device Library Plus の ID を使うため DeviceSQL (export.pdb) のダウンロードは使えない。
  *       メタデータは dbserver 問い合わせで取得する (beat-link 側が自動で切り替える)。</li>
  *   <li>XDJ-AZ はメタデータ取得に 1〜4 番を必要としない機種 (METADATA_FLEXIBLE) なので、
- *       VirtualCdj は標準外の空き番号で動かしてよい。4 デッキで 1〜4 番は埋まる。</li>
+ *       VirtualCdj は標準外の空き番号で動かしてよい。</li>
+ *   <li>Pro DJ Link モードでは 2 デッキしか使えない (4 デッキが使えるのはモード OFF のときだけ)。</li>
  *   <li>1 台で複数デッキ分のステータスを送るため、プレイヤーはアナウンスではなくステータスから列挙する。</li>
  *   <li>スロット番号の意味が他機種と異なる (SD_SLOT が USB 2)。</li>
  * </ul>
