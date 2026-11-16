@@ -55,6 +55,7 @@ public final class BeatLinkService implements PlayerSource {
 
     private final List<Runnable> changeListeners = new CopyOnWriteArrayList<>();
     private final List<Consumer<BeatEvent>> beatListeners = new CopyOnWriteArrayList<>();
+    private final List<Consumer<StatusEvent>> statusListeners = new CopyOnWriteArrayList<>();
     private volatile Long xdjAzNotLinkSince = null;
 
     public BeatLinkService(Config config) {
@@ -66,6 +67,9 @@ public final class BeatLinkService implements PlayerSource {
 
     @Override
     public void onBeat(Consumer<BeatEvent> listener) { beatListeners.add(listener); }
+
+    @Override
+    public void onStatus(Consumer<StatusEvent> listener) { statusListeners.add(listener); }
 
     public VirtualCdj virtualCdj() { return virtualCdj; }
 
@@ -91,7 +95,15 @@ public final class BeatLinkService implements PlayerSource {
                 fireChange();
             }
         });
-        virtualCdj.addUpdateListener(update -> fireChange());
+        virtualCdj.addUpdateListener(update -> {
+            fireChange();
+            if (update instanceof CdjStatus status) {
+                StatusEvent event = new StatusEvent(status.getDeviceNumber(), status);
+                for (Consumer<StatusEvent> l : statusListeners) {
+                    try { l.accept(event); } catch (Exception e) { log.warn("status listener failed", e); }
+                }
+            }
+        });
         metadataFinder.addTrackMetadataListener(update -> fireChange());
         artFinder.addAlbumArtListener(update -> fireChange());
         beatGridFinder.addBeatGridListener(update -> fireChange());
@@ -109,7 +121,7 @@ public final class BeatLinkService implements PlayerSource {
             }
             BeatEvent event = new BeatEvent(beat.getDeviceNumber(),
                     beat.isBeatWithinBarMeaningful() ? beat.getBeatWithinBar() : 0,
-                    round2(beat.getEffectiveTempo()), beat.isTempoMaster());
+                    round2(beat.getEffectiveTempo()), beat.isTempoMaster(), beat);
             for (Consumer<BeatEvent> l : beatListeners) {
                 try { l.accept(event); } catch (Exception e) { log.warn("beat listener failed", e); }
             }

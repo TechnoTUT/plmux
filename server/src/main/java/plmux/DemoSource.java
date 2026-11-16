@@ -65,6 +65,10 @@ public final class DemoSource implements PlayerSource {
     private final Deck[] decks = new Deck[DECKS];
     private final List<Runnable> changeListeners = new CopyOnWriteArrayList<>();
     private final List<Consumer<BeatEvent>> beatListeners = new CopyOnWriteArrayList<>();
+    private final List<Consumer<StatusEvent>> statusListeners = new CopyOnWriteArrayList<>();
+    /** 実機と同じく、各デッキの状態を 200ms ごとに知らせる。 */
+    private static final int STATUS_EVERY_TICKS = 10;
+    private int ticks;
     private final Map<Integer, byte[]> artCache = new ConcurrentHashMap<>();
     private final ScheduledExecutorService ticker = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "demo-ticker");
@@ -107,6 +111,9 @@ public final class DemoSource implements PlayerSource {
     @Override
     public void onBeat(Consumer<BeatEvent> listener) { beatListeners.add(listener); }
 
+    @Override
+    public void onStatus(Consumer<StatusEvent> listener) { statusListeners.add(listener); }
+
     private synchronized void tick() {
         try {
             long now = System.currentTimeMillis();
@@ -133,11 +140,17 @@ public final class DemoSource implements PlayerSource {
                 for (Deck d : decks) {
                     if (!d.playing) continue;
                     d.beat++;
-                    BeatEvent e = new BeatEvent(d.number, masterBeatWithinBar, masterBpm, d.master);
+                    BeatEvent e = new BeatEvent(d.number, masterBeatWithinBar, masterBpm, d.master, null);
                     for (Consumer<BeatEvent> l : beatListeners) l.accept(e);
                 }
             }
             for (Runnable r : changeListeners) r.run();
+            if (++ticks % STATUS_EVERY_TICKS == 0) {
+                for (Deck d : decks) {
+                    StatusEvent e = new StatusEvent(d.number, null);
+                    for (Consumer<StatusEvent> l : statusListeners) l.accept(e);
+                }
+            }
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(DemoSource.class).warn("demo tick failed", e);
         }
