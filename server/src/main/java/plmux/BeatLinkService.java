@@ -169,8 +169,11 @@ public final class BeatLinkService implements PlayerSource {
     @Override
     public void stop() {
         scheduler.shutdownNow();
+        // DeviceFinder is deliberately left running: this is only called at JVM shutdown, and stopping it announces
+        // every device as lost, which makes CrateDigger's (still registered) unmount listener call the stopped
+        // DeviceFinder and log a warning. Its sockets are closed when the process exits anyway.
         for (Runnable r : List.<Runnable>of(waveformFinder::stop, beatGridFinder::stop, timeFinder::stop, artFinder::stop, crateDigger::stop,
-                metadataFinder::stop, beatFinder::stop, virtualCdj::stop, deviceFinder::stop)) {
+                metadataFinder::stop, beatFinder::stop, virtualCdj::stop)) {
             try { r.run(); } catch (Exception e) { log.debug("stop failed", e); }
         }
     }
