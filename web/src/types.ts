@@ -21,6 +21,8 @@ export interface Player {
   address: string
   playing: boolean
   onAir: boolean
+  /** false when the device cannot report On-Air (XDJ-AZ); onAir is then always false */
+  onAirKnown: boolean
   master: boolean
   synced: boolean
   bpm: number

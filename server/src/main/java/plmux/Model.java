@@ -26,6 +26,8 @@ public final class Model {
             String address,
             boolean playing,
             boolean onAir,
+            /** false when the device does not report On-Air (the XDJ-AZ always reports every channel as off-air). */
+            boolean onAirKnown,
             boolean master,
             boolean synced,
             double bpm,

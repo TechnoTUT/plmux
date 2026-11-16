@@ -50,12 +50,13 @@ const artUrl = computed(() =>
     : null,
 )
 
+// The XDJ-AZ does not report On-Air, so its decks do not show the On Air flag at all
 const flags = computed(() => [
   { label: 'Play', on: props.player.playing, cls: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' },
   { label: 'On Air', on: props.player.onAir, cls: 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800' },
   { label: 'Master', on: props.player.master, cls: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800' },
   { label: 'Sync', on: props.player.synced, cls: 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800' },
-])
+].filter((f) => f.label !== 'On Air' || props.player.onAirKnown))
 </script>
 
 <template>

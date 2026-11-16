@@ -81,7 +81,7 @@ docker run --network host -v plmux-data:/data plmux
 | `PLMUX_DEVICE_NAME` | `plmux` | Device name announced on the DJ Link network |
 | `PLMUX_USE_STANDARD_PLAYER_NUMBER` | `false` | Make the Virtual CDJ claim player number 1–4. Not needed for the XDJ-AZ |
 | `PLMUX_HISTORY_MIN_PLAY_SECONDS` | `15` | Seconds a track must play before it is logged |
-| `PLMUX_HISTORY_REQUIRE_ON_AIR` | `true` | Only count play time while the channel is On-Air (fader up) |
+| `PLMUX_HISTORY_REQUIRE_ON_AIR` | `true` | Only count play time while the channel is On-Air (fader up). Ignored for the XDJ-AZ, which does not report On-Air |
 | `PLMUX_LINK_MODE` | `OFF` | Default Link mode on startup: `OFF` / `MONITOR` / `FOLLOW`. A startup mode chosen in the GUI's Settings tab is saved and takes precedence. The current mode can always be changed in the Link tab |
 | `PLMUX_LINK_LATENCY_MS` | `1` | Latency compensation for beat packets |
 | `PLMUX_LINK_ALIGN_BARS` | `true` | Align bars, not just beats |
@@ -97,6 +97,9 @@ docker run --network host -v plmux-data:/data plmux
 - The server must be on the **same LAN (same L2 segment)** as the XDJ-AZ's LINK port.
 - Metadata is fetched with dbserver queries. The XDJ-AZ uses Device Library Plus IDs, so DeviceSQL database
   downloads cannot be used; beat-link main switches over automatically.
+- The XDJ-AZ does not report On-Air: every channel is reported as off-air even with the faders up and ON AIR DISPLAY
+  enabled. Track history therefore counts all play time on its decks (including cueing with the fader down), and
+  the GUI shows On Air as `n/a`.
 - One unit sends status for four decks, so players are enumerated from status packets rather than device announcements.
 - On the XDJ-AZ / XDJ-XZ the slots are labelled `USB 1` / `USB 2` (same as BLT).
 
