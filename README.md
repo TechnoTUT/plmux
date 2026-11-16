@@ -49,7 +49,7 @@ PLMUX_DEMO=true PLMUX_DATA_DIR=/tmp/plmux-demo java -jar server/target/plmux-ser
 Keep the server running (`java -jar …`, demo mode works fine) and start Vite with `cd web && npm run dev`.
 API and WebSocket requests are proxied to port 8080.
 
-GUI URL options: `#history` / `#link` / `#settings` open a specific tab, `?theme=dark` / `?theme=light` force the color theme
+GUI URL options: `#history` / `#link` / `#expressions` / `#settings` open a specific tab, `?theme=dark` / `?theme=light` force the color theme
 (handy for a fixed booth display).
 
 ### OBS overlay
@@ -62,6 +62,90 @@ Theme, corner position (right corners are right-aligned), artwork, card opacity 
 tags and "hide when the master deck is stopped" are set in the GUI's Settings tab (with a live preview) and
 apply to open overlays immediately.
 With the Vite dev server, open `/overlay.html` instead.
+
+### Clojure expressions
+
+Like Beat Link Trigger, plmux can run your own Clojure code when things happen on the DJ Link network: send OSC to
+lighting or VJ software, react to phrases, and so on. Write the expressions in the file
+`PLMUX_EXPRESSIONS_FILE` (by default `expressions.clj` in the data directory). plmux checks it every 2 seconds and
+reloads it when it changes (`global-shutdown` of the old version runs first).
+The GUI's **Expressions** tab shows the file, load errors and how often each hook ran, with the line of the last
+error. It is read-only on purpose: the GUI has no authentication, and expressions run arbitrary code on the server.
+
+Each hook is a top-level form whose body is the code to run:
+
+| Hook | When it runs |
+|---|---|
+| `(global-setup ...)` / `(setup ...)` | Once after loading (BLT's Global Setup / trigger Setup) |
+| `(came-online ...)` / `(going-offline ...)` | When DJ Link goes online / offline (`came-online` also runs after loading while online) |
+| `(tracked-update ...)` | Every status packet from the tempo master deck (about every 200 ms), like a BLT trigger watching the Master Player |
+| `(beat ...)` | Every beat of the tempo master deck |
+| `(every ms ...)` | Every `ms` milliseconds (at least 20) with the tempo master's current state. plmux only; handy for smooth lighting |
+| `(phrase-started ...)` / `(phrase-ended ...)` | When the tempo master deck enters / leaves a rekordbox phrase, or stops |
+| `(shutdown ...)` / `(global-shutdown ...)` | Once before unloading or exiting |
+
+Inside the bodies you can use the same names as in BLT expressions: `status` (beat-link's `CdjStatus` in
+`tracked-update`, `Beat` in `beat`; `nil` in demo mode), `device-number`, `playing?`, `tempo-master?`, `synced?`,
+`on-air?` (`nil` for the XDJ-AZ), `effective-tempo`, `pitch-multiplier`, `beat-number`, `beat-within-bar`,
+`track-time-reached` (ms), `rekordbox-id`, `track-title`, `track-artist`, `track-album`, `track-genre`, `track-key`,
+`track-length` (seconds), and `player` (plmux's `Model$Player`). Phrase hooks also get `phrase` (`Model$Phrase`),
+`phrase-kind` (`"intro"`, `"verse"`, `"bridge"`, `"chorus"`, `"up"`, `"down"`, `"outro"`) and `phrase-label`
+(`"Verse 2"`, `"Up 1"`, ...). `globals` and `locals` are atoms, and `osc/osc-client`, `osc/osc-send` and
+`osc/osc-close` work like overtone/osc-clj in BLT (a Long is sent as a 64-bit `h` and a Double as `d`; use `(float x)`
+for `f`). Common beat-link classes (`CdjStatus`, `Util`, `TimeFinder`, `WaveformFinder`, ...) are imported.
+
+plmux also provides these helpers, which work in demo mode too:
+
+| Function | Returns |
+|---|---|
+| `(waveform-sample player time-ms)` | `{:r :g :b :level}` (0–1) of the waveform around that position. With the 3-Band style, low / mid / high become red / green / blue; with Blue, `:r :g :b` are `nil` |
+| `(beat-at player time-ms)` / `(phrase-at player beat)` | Beat number at a position / the `Model$Phrase` containing a beat |
+| `(waveform player)` / `(master-player)` / `(current-state)` | The same data the GUI uses |
+
+All hooks run one at a time on a single thread, so keep them quick.
+
+#### Example: lighting with dmxctl
+
+This does what the [Beat Link Trigger section of the dmxctl README](https://github.com/TechnoTUT/dmxctl#beat-link-trigger-との連携)
+describes, without running BLT: the waveform color and loudness a little ahead of the playhead go to dmxctl's
+`/dmx/main/rgb/at` and `/dmx/level/at`, and rekordbox phrases go to `/dmx/phrase`. In dmxctl, turn on OSC receive and
+Auto, and set its tempo source to Ableton Link (with plmux's Link mode set to Follow CDJ Master).
+
+```clojure
+(global-setup
+  (swap! globals assoc :dmx (osc/osc-client "192.168.1.20" 9000)))   ; the PC running dmxctl
+
+;; Read the waveform LEAD seconds ahead (scaled by the pitch) and ask dmxctl to reach that color exactly
+;; LEAD - LIGHT seconds from now, LIGHT being how long the lights take to react.
+(every 40
+  (when playing?
+    (let [lead  0.15
+          light 0.05
+          s     (waveform-sample device-number (+ track-time-reached (* lead 1000 pitch-multiplier)))]
+      (when s
+        (when (:r s)
+          (osc/osc-send (:dmx @globals) "/dmx/main/rgb/at"
+                        (float (:r s)) (float (:g s)) (float (:b s)) (float (- lead light))))
+        (osc/osc-send (:dmx @globals) "/dmx/level/at" (float (:level s)) (float (- lead light)))))))
+
+(phrase-started
+  (when phrase-kind
+    (osc/osc-send (:dmx @globals) "/dmx/phrase" phrase-kind)))
+
+;; Only if Ableton Link does not reach dmxctl: send the tempo and the downbeat instead.
+;; (beat
+;;   (osc/osc-send (:dmx @globals) "/dmx/bpm" (float effective-tempo))
+;;   (when (= beat-within-bar 1)
+;;     (osc/osc-send (:dmx @globals) "/dmx/resync")))
+
+(global-shutdown
+  (osc/osc-close (:dmx @globals)))
+```
+
+The BLT expressions from the dmxctl README can also be pasted as they are (Setup → `setup`, Tracked Update →
+`tracked-update`, Beat → `beat`, Shutdown → `shutdown`, the Phrase Trigger's Started → `phrase-started`), with two
+caveats: they use beat-link objects, so they do nothing useful in demo mode, and `.segmentColor` needs the **RGB**
+waveform style (Settings tab) and an integer scale, e.g. `(.segmentColor detail % 1)` instead of `false`.
 
 ### Container
 
@@ -88,6 +172,7 @@ docker run --network host -v plmux-data:/data plmux
 | `PLMUX_WAVEFORM_STYLE` | `THREE_BAND` | Default waveform style: `THREE_BAND` / `RGB` / `BLUE`. Can be changed in the GUI's Settings tab, which is saved and takes precedence. Falls back if a player cannot provide it |
 | `PLMUX_CARABINER_PORT` | `17000` | Carabiner port |
 | `PLMUX_CARABINER_EMBEDDED` | `true` | Launch the bundled Carabiner binary if none is running |
+| `PLMUX_EXPRESSIONS_FILE` | `$PLMUX_DATA_DIR/expressions.clj` | Clojure expressions file (see [Clojure expressions](#clojure-expressions)). Nothing runs if it does not exist |
 | `PLMUX_DEMO` | `false` | Serve dummy data instead of connecting to DJ Link (for GUI testing) |
 | `TZ` | (OS) | Time zone used for timestamps in the history CSV |
 
@@ -112,6 +197,9 @@ docker run --network host -v plmux-data:/data plmux
   DJ booth LAN. If the cluster is not at the venue, join an on-site machine as a node (e.g. a k3s agent).
 - The pod owns UDP 50000–50002 and the SQLite file, so use `replicas: 1` and `strategy: Recreate`.
 - Mount a PVC at `/data` for the history database and an `emptyDir` at `/tmp` (the bundled Carabiner is extracted there).
+- To manage [Clojure expressions](#clojure-expressions) in the manifests, put the file in a ConfigMap, mount it as a
+  directory (not with `subPath`, which never updates) and point `PLMUX_EXPRESSIONS_FILE` at it, e.g.
+  `/config/expressions.clj`. plmux picks up ConfigMap updates without a restart.
 - The bundled Carabiner is **x86_64 only** (the ARM build in lib-carabiner is 32-bit armhf). On arm64 nodes, run
   Carabiner separately and set `PLMUX_CARABINER_EMBEDDED=false`.
 - If you go through an Ingress, make sure WebSocket (`/ws`) is allowed.
@@ -152,7 +240,8 @@ git add vendor pom.xml && git commit -m "Update beat-link"
 | GET | `/overlay` | Now Playing overlay page for OBS |
 | GET | `/api/state` | Current state |
 | GET | `/api/players/{n}/artwork` | Artwork image |
-| GET | `/api/players/{n}/waveform` | Waveform preview/detail, beat grid and cue points (see `Model.Waveform`) |
+| GET | `/api/players/{n}/waveform` | Waveform preview/detail, beat grid, cue points and rekordbox phrases (see `Model.Waveform`) |
+| GET | `/api/expressions` | Clojure expressions file, load error and hook status (read-only) |
 | GET / PUT | `/api/link` | Link settings `{mode, latencyMs, alignBars}` |
 | GET / PUT | `/api/settings` | GUI settings `{waveformStyle, linkStartupMode, overlay: {theme, position, showArtwork, hideWhenIdle, backgroundOpacity, tags}}` (saved in `plmux.db`) |
 | GET / POST | `/api/sessions` | List sessions / start one `{name}` |
