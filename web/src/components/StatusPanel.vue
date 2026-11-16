@@ -10,6 +10,7 @@ const status = computed(() => {
   return { label: 'Online', cls: 'pill-ok' }
 })
 const onAir = computed(() => props.state?.players.filter((p) => p.onAir).map((p) => p.number) ?? [])
+const onAirUnknown = computed(() => !!props.state?.players.length && props.state.players.every((p) => !p.onAirKnown))
 </script>
 
 <template>
@@ -22,7 +23,7 @@ const onAir = computed(() => props.state?.players.filter((p) => p.onAir).map((p)
     <div class="space-y-2 border-t border-slate-100 dark:border-slate-800 pt-3">
       <div class="kv"><span>Master Deck</span><span>{{ state?.masterPlayer ?? '-' }}</span></div>
       <div class="kv"><span>Master BPM</span><span>{{ state?.masterPlayer ? state.masterBpm.toFixed(2) : '-' }}</span></div>
-      <div class="kv"><span>On Air</span><span>{{ onAir.length ? onAir.join(', ') : '-' }}</span></div>
+      <div class="kv"><span>On Air</span><span :title="onAirUnknown ? 'This device does not report On-Air' : undefined">{{ onAirUnknown ? 'n/a' : onAir.length ? onAir.join(', ') : '-' }}</span></div>
       <div class="kv"><span>Decks</span><span>{{ state?.players.length ?? 0 }}</span></div>
     </div>
     <div v-if="state?.otherDevices.length" class="space-y-2 border-t border-slate-100 dark:border-slate-800 pt-3">

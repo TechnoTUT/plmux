@@ -331,6 +331,7 @@ public final class BeatLinkService implements PlayerSource {
                 s.getAddress().getHostAddress(),
                 s.isPlaying(),
                 s.isOnAir(),
+                reportsOnAir(owner, s),
                 s.isTempoMaster(),
                 s.isSynced(),
                 round2(s.getEffectiveTempo()),
@@ -340,6 +341,14 @@ public final class BeatLinkService implements PlayerSource {
                 positionMs,
                 s.isTrackLoaded(),
                 track);
+    }
+
+    /**
+     * Whether the device's On-Air flag can be trusted. The XDJ-AZ reports every channel as off-air, both in its
+     * CDJ status packets and in its Channels On Air packets, even with the faders up and ON AIR DISPLAY enabled.
+     */
+    static boolean reportsOnAir(DeviceAnnouncement owner, CdjStatus s) {
+        return !((owner != null && owner.isXdjAz) || "XDJ-AZ".equals(s.getDeviceName()));
     }
 
     /** 機種ごとのスロット表記。XDJ-AZ / XDJ-XZ は SD_SLOT が「USB 2」に相当する (BLT players.clj と同じ扱い)。 */

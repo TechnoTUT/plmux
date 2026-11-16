@@ -84,7 +84,8 @@ public final class HistoryService {
                 c = new Candidate(loadKey);
                 candidates.put(p.number(), c);
             }
-            boolean audible = p.playing() && (!requireOnAir || p.onAir());
+            // Devices that cannot report On-Air (the XDJ-AZ) count all play time.
+            boolean audible = p.playing() && (!requireOnAir || !p.onAirKnown() || p.onAir());
             if (audible) c.accumulatedMs += delta;
             if (!c.logged && c.accumulatedMs >= minPlayMs) {
                 c.logged = true;

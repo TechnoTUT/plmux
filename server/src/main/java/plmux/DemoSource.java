@@ -196,7 +196,7 @@ public final class DemoSource implements PlayerSource {
             double bpm = d.synced || d.master ? masterBpm : t.bpm();
             if (d.master) masterPlayer = d.number;
             players.add(new Model.Player(
-                    d.number, MODEL, ADDRESS, d.playing, d.onAir, d.master, d.synced,
+                    d.number, MODEL, ADDRESS, d.playing, d.onAir, true, d.master, d.synced,
                     BeatLinkService.round2(bpm),
                     BeatLinkService.round2((bpm / t.bpm() - 1.0) * 100.0),
                     d.beat, d.playing ? masterBeatWithinBar : 0,

@@ -29,7 +29,7 @@ watch(activeTab, (t) => history.replaceState(null, '', t === 'decks' ? location.
 window.addEventListener('hashchange', () => (activeTab.value = tabFromHash()))
 
 const online = computed(() => connected.value && !!state.value?.djLinkOnline)
-const anyPlaying = computed(() => state.value?.players.some((p) => p.playing && p.onAir) ?? false)
+const anyPlaying = computed(() => state.value?.players.some((p) => p.playing && (p.onAir || !p.onAirKnown)) ?? false)
 const link = computed(() => state.value?.link)
 
 function tabDot(id: Tab): string | null {
