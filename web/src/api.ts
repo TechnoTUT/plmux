@@ -1,4 +1,4 @@
-import type { HistoryEntry, LinkMode, LinkSettings, OverlaySettings, Session, Settings, WaveformResponse, WaveformStyle } from './types'
+import type { ExpressionsStatus, HistoryEntry, LinkMode, LinkSettings, OverlaySettings, Session, Settings, WaveformResponse, WaveformStyle } from './types'
 
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
@@ -20,6 +20,8 @@ export const api = {
   getLink: () => request<LinkSettings>('GET', '/api/link'),
   updateLink: (patch: { mode?: LinkMode; latencyMs?: number; alignBars?: boolean }) =>
     request<LinkSettings>('PUT', '/api/link', patch),
+
+  getExpressions: () => request<ExpressionsStatus>('GET', '/api/expressions'),
 
   getSettings: () => request<Settings>('GET', '/api/settings'),
   updateSettings: (patch: SettingsPatch) => request<Settings>('PUT', '/api/settings', patch),
