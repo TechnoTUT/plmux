@@ -18,12 +18,14 @@ public record Config(
         int linkLatencyMs,
         boolean linkAlignBars,
         String waveformStyle,
+        Path expressionsFile,
         boolean demo) {
 
     public static Config fromEnv() {
+        Path dataDir = Path.of(env("PLMUX_DATA_DIR", "./data"));
         return new Config(
                 intEnv("PLMUX_HTTP_PORT", 8080),
-                Path.of(env("PLMUX_DATA_DIR", "./data")),
+                dataDir,
                 env("PLMUX_DEVICE_NAME", "plmux"),
                 boolEnv("PLMUX_USE_STANDARD_PLAYER_NUMBER", false),
                 intEnv("PLMUX_HISTORY_MIN_PLAY_SECONDS", 15),
@@ -34,6 +36,7 @@ public record Config(
                 intEnv("PLMUX_LINK_LATENCY_MS", 1),
                 boolEnv("PLMUX_LINK_ALIGN_BARS", true),
                 env("PLMUX_WAVEFORM_STYLE", "THREE_BAND").toUpperCase(),
+                Path.of(env("PLMUX_EXPRESSIONS_FILE", dataDir.resolve("expressions.clj").toString())),
                 boolEnv("PLMUX_DEMO", false));
     }
 
