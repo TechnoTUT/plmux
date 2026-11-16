@@ -8,15 +8,17 @@ import HistoryPanel from './components/HistoryPanel.vue'
 import StatusPanel from './components/StatusPanel.vue'
 import RecentTracks from './components/RecentTracks.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
+import ExpressionsPanel from './components/ExpressionsPanel.vue'
 
 const { state, connected } = useLive()
 const { dark, toggle } = useTheme()
 
-type Tab = 'decks' | 'history' | 'link' | 'settings'
+type Tab = 'decks' | 'history' | 'link' | 'expressions' | 'settings'
 const tabs: { id: Tab; label: string }[] = [
   { id: 'decks', label: 'Decks' },
   { id: 'history', label: 'History' },
   { id: 'link', label: 'Ableton Link' },
+  { id: 'expressions', label: 'Expressions' },
   { id: 'settings', label: 'Settings' },
 ]
 // タブは URL の #history のように指定でき、ブックマークやブース用ディスプレイで固定表示できる
@@ -33,7 +35,7 @@ const anyPlaying = computed(() => state.value?.players.some((p) => p.playing && 
 const link = computed(() => state.value?.link)
 
 function tabDot(id: Tab): string | null {
-  if (id === 'settings') return null
+  if (id === 'settings' || id === 'expressions') return null
   if (id === 'decks') return online.value ? (anyPlaying.value ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-400') : 'bg-amber-400'
   if (id === 'link') {
     if (!link.value || link.value.mode === 'OFF') return 'bg-slate-300 dark:bg-slate-600'
@@ -155,6 +157,9 @@ function tabDot(id: Tab): string | null {
 
       <!-- ==================== TAB: Ableton Link ==================== -->
       <LinkPanel v-show="activeTab === 'link'" :status="state?.link ?? null" />
+
+      <!-- ==================== TAB: Expressions ==================== -->
+      <ExpressionsPanel v-show="activeTab === 'expressions'" :active="activeTab === 'expressions'" />
 
       <!-- ==================== TAB: Settings ==================== -->
       <SettingsPanel v-show="activeTab === 'settings'" />
