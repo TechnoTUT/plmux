@@ -99,6 +99,29 @@ export interface LinkSettings {
   alignBars: boolean
 }
 
+/** Clojure の式のフックの実行状況 (server/src/main/java/plmux/ExpressionService.java) */
+export interface ExpressionHook {
+  name: string
+  defined: boolean
+  /** every の間隔 */
+  intervalMs: number | null
+  runs: number
+  errors: number
+  lastError: string | null
+  lastErrorAt: number | null
+}
+
+export interface ExpressionsStatus {
+  /** 式のファイルの場所 (サーバー上) */
+  path: string
+  exists: boolean
+  source: string | null
+  loadedAt: number | null
+  /** 読み込めなかったときの理由 */
+  error: string | null
+  hooks: ExpressionHook[]
+}
+
 export type WaveformStyle = 'BLUE' | 'RGB' | 'THREE_BAND'
 
 export interface Settings {
