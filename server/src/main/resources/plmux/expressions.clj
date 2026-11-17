@@ -121,8 +121,11 @@
 
 (defn waveform-sample
   "デッキの曲の time-ms (曲の先頭からのミリ秒) のあたり (前後約 0.05 秒) の波形の色と大きさ。
-  {:r :g :b :level} の map で、どれも 0〜1。色を出せない波形 (Settings の Blue) では :r :g :b が nil。
-  曲の範囲外や、波形がまだ取れていなければ nil。"
+  {:r :g :b :level} の map で、どれも 0〜1。曲の範囲外や、波形がまだ取れていなければ nil。
+
+  色は GUI の表示の形式 (Settings) とは関係なく、rekordbox の色付き (RGB) 波形から取る。
+  曲に色付き波形の解析がないときだけ表示用の波形を使い、3-Band なら低域・中域・高域を赤・緑・青にする
+  (Blue では :r :g :b が nil)。"
   [player time-ms]
   (when-let [^WaveformSampler$Sample s (.sample service (int player) (double time-ms))]
     (let [rgb (.rgb s)]
@@ -130,6 +133,13 @@
        :g     (when rgb (aget rgb 1))
        :b     (when rgb (aget rgb 2))
        :level (.level s)})))
+
+(defn rgb-waveform-detail
+  "デッキの曲の色付き (RGB) 詳細波形を beat-link の WaveformDetail で返す (表示の形式とは関係ない)。
+  BLT の式の (.getLatestDetailFor (WaveformFinder/getInstance) n) の代わりに使うと、.segmentColor が使える。
+  実機だけで、デモや色付き波形がない曲では nil。"
+  [player]
+  (.rgbWaveformDetail service (int player)))
 
 (defn beat-at
   "デッキの曲の time-ms にある拍の番号 (1 始まり)。ビートグリッドがなければ 0。"
@@ -143,7 +153,7 @@
 
 (def ^:private user-api
   '[global-setup global-shutdown setup shutdown came-online going-offline tracked-update beat phrase-started phrase-ended every
-    current-state master-player waveform waveform-sample beat-at phrase-at])
+    current-state master-player waveform waveform-sample rgb-waveform-detail beat-at phrase-at])
 
 (defn ^:no-doc load-expressions
   "source を新しい名前空間 plmux.user で評価し、定義されたフックの map を返す。"

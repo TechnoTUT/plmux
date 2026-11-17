@@ -41,4 +41,10 @@ public interface PlayerSource {
 
     /** 波形・ビートグリッド・キュー。何も取れていなければ null。 */
     Model.Waveform waveform(int player);
+
+    /**
+     * 色の解析用の RGB 詳細波形 (rekordbox の色付き波形)。GUI の表示の形式 ({@link #setWaveformStyle}) とは関係なく取る。
+     * 曲に色付き波形の解析がないか、まだ取れていなければ null。
+     */
+    WaveformSampler colorSampler(int player);
 }

@@ -44,6 +44,12 @@ public final class BeatLinkService implements PlayerSource {
     private final AnalysisTagFinder analysisTagFinder = AnalysisTagFinder.getInstance();
     private static final String PHRASE_FILE = ".EXT";
     private static final String PHRASE_TAG = "PSSI";
+    /** rekordbox の色付き (RGB) の詳細波形。表示の形式とは別に、色の解析用に取る。 */
+    private static final String COLOR_WAVEFORM_TAG = "PWV5";
+    /** プレイヤーごとに直近の色付き波形 (解析タグが変わるまで使い回す) */
+    private final Map<Integer, ColorWaveform> colorCache = new ConcurrentHashMap<>();
+
+    private record ColorWaveform(Object section, WaveformDetail detail, WaveformSampler sampler) {}
     /** プレイヤーごとに直近にエンコードした波形 (waveformKey が変わるまで使い回す) */
     private final Map<Integer, Model.Waveform> waveformCache = new ConcurrentHashMap<>();
 
@@ -113,6 +119,7 @@ public final class BeatLinkService implements PlayerSource {
         });
         // リスナーを登録したタグだけを AnalysisTagFinder が取りに行く
         analysisTagFinder.addAnalysisTagListener(update -> fireChange(), PHRASE_FILE, PHRASE_TAG);
+        analysisTagFinder.addAnalysisTagListener(update -> { }, PHRASE_FILE, COLOR_WAVEFORM_TAG);
         beatFinder.addBeatListener(beat -> {
             // These Beat accessors consult the VirtualCdj's latest status for the deck, so beats that arrive before
             // the VirtualCdj is running or before that deck's first status packet would throw. Skip them.
@@ -243,6 +250,37 @@ public final class BeatLinkService implements PlayerSource {
                 md != null ? md.getDuration() * 1000L : 0);
         waveformCache.put(player, w);
         return w;
+    }
+
+    @Override
+    public WaveformSampler colorSampler(int player) {
+        ColorWaveform c = colorWaveform(player);
+        return c != null ? c.sampler() : null;
+    }
+
+    /** 色付き (RGB) の詳細波形を beat-link の形のまま返す (BLT 風の式で .segmentColor を使うため)。 */
+    public WaveformDetail rgbWaveformDetail(int player) {
+        ColorWaveform c = colorWaveform(player);
+        return c != null ? c.detail() : null;
+    }
+
+    private ColorWaveform colorWaveform(int player) {
+        if (!analysisTagFinder.isRunning()) return null;
+        RekordboxAnlz.TaggedSection section =
+                analysisTagFinder.getLatestTrackAnalysisFor(player, PHRASE_FILE, COLOR_WAVEFORM_TAG);
+        if (section == null || !(section.body() instanceof RekordboxAnlz.WaveColorScrollTag tag)) {
+            colorCache.remove(player);
+            return null;
+        }
+        ColorWaveform cached = colorCache.get(player);
+        if (cached != null && cached.section() == section) return cached;
+        WaveformDetail detail = new WaveformDetail(null, java.nio.ByteBuffer.wrap(tag.entries()),
+                WaveformFinder.WaveformStyle.RGB);
+        WaveformSampler sampler = WaveformSampler.of("rgb-" + player + "-" + System.identityHashCode(section), "RGB",
+                WaveformEncoder.detailStride(detail), WaveformEncoder.detailBytes(detail));
+        ColorWaveform c = new ColorWaveform(section, detail, sampler);
+        colorCache.put(player, c);
+        return c;
     }
 
     private RekordboxAnlz.SongStructureTag songStructure(int player) {
