@@ -111,6 +111,7 @@ This does what the [Beat Link Trigger section of the dmxctl README](https://gith
 describes, without running BLT: the waveform color and loudness a little ahead of the playhead go to dmxctl's
 `/dmx/main/rgb/at` and `/dmx/level/at`, and rekordbox phrases go to `/dmx/phrase`. In dmxctl, turn on OSC receive and
 Auto, and set its tempo source to Ableton Link (with plmux's Link mode set to Follow CDJ Master).
+The same example, ready to deploy, is in [`deploy/k8s/expressions.clj`](deploy/k8s/expressions.clj).
 
 ```clojure
 (global-setup
@@ -199,9 +200,11 @@ docker run --network host -v plmux-data:/data plmux
   DJ booth LAN. If the cluster is not at the venue, join an on-site machine as a node (e.g. a k3s agent).
 - The pod owns UDP 50000–50002 and the SQLite file, so use `replicas: 1` and `strategy: Recreate`.
 - Mount a PVC at `/data` for the history database and an `emptyDir` at `/tmp` (the bundled Carabiner is extracted there).
-- To manage [Clojure expressions](#clojure-expressions) in the manifests, put the file in a ConfigMap, mount it as a
-  directory (not with `subPath`, which never updates) and point `PLMUX_EXPRESSIONS_FILE` at it, e.g.
-  `/config/expressions.clj`. plmux picks up ConfigMap updates without a restart.
+- [Clojure expressions](#clojure-expressions) are not bundled in the image. The reference manifests generate the
+  ConfigMap `plmux-expressions` from the example `deploy/k8s/expressions.clj`, mount it at `/config` and set
+  `PLMUX_EXPRESSIONS_FILE=/config/expressions.clj`; in production, provide your own file the same way. Mount the
+  ConfigMap as a directory (not with `subPath`, which never updates): plmux then picks up changes without a restart.
+  The ConfigMap is optional, so without it nothing runs.
 - The bundled Carabiner is **x86_64 only** (the ARM build in lib-carabiner is 32-bit armhf). On arm64 nodes, run
   Carabiner separately and set `PLMUX_CARABINER_EMBEDDED=false`.
 - If you go through an Ingress, make sure WebSocket (`/ws`) is allowed.

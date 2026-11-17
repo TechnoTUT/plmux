@@ -13,3 +13,4 @@ data:
   PLMUX_LINK_ALIGN_BARS: "true"
   PLMUX_WAVEFORM_STYLE: "THREE_BAND" # THREE_BAND / RGB / BLUE
   PLMUX_CARABINER_EMBEDDED: "true" # x86_64 ノードのみ。arm64 では Carabiner を別途起動して false に
+  PLMUX_EXPRESSIONS_FILE: "/config/expressions.clj"  # ConfigMap plmux-expressions (kustomization.yaml) をマウントした場所

@@ -5,3 +5,12 @@ resources:
   - pvc.yaml
   - deployment.yaml
   - service.yaml
+
+# Clojure の式 (expressions.clj は dmxctl 連携の設定例)。イメージには同梱せず、ConfigMap で投入する。
+# 名前にハッシュを付けないので、ConfigMap を更新すると Pod を作り直さずに plmux が読み込み直す。
+configMapGenerator:
+  - name: plmux-expressions
+    files:
+      - expressions.clj
+    options:
+      disableNameSuffixHash: true
