@@ -44,6 +44,17 @@ final class WaveformEncoder {
     }
 
     static Model.WaveDetail encodeDetail(WaveformDetail detail) {
+        int stride = detailStride(detail);
+        return new Model.WaveDetail(detail.getFrameCount(), stride, b64(detailBytes(detail)));
+    }
+
+    /** THREE_BAND は [低域, 中域, 高域]、それ以外は [高さ, R, G, B] の 1 区間あたりのバイト数。 */
+    static int detailStride(WaveformDetail detail) {
+        return detail.style == WaveformStyle.THREE_BAND ? 3 : 4;
+    }
+
+    /** {@link Model.WaveDetail#data()} の Base64 にする前のバイト列。 */
+    static byte[] detailBytes(WaveformDetail detail) {
         int frames = detail.getFrameCount();
         if (detail.style == WaveformStyle.THREE_BAND) {
             byte[] out = new byte[frames * 3];
@@ -52,7 +63,7 @@ final class WaveformEncoder {
                 out[i * 3 + 1] = clampByte(detail.segmentHeight(i, 1, ThreeBandLayer.MID));
                 out[i * 3 + 2] = clampByte(detail.segmentHeight(i, 1, ThreeBandLayer.HIGH));
             }
-            return new Model.WaveDetail(frames, 3, b64(out));
+            return out;
         }
         byte[] out = new byte[frames * 4];
         for (int i = 0; i < frames; i++) {
@@ -62,7 +73,7 @@ final class WaveformEncoder {
             out[i * 4 + 2] = (byte) c.getGreen();
             out[i * 4 + 3] = (byte) c.getBlue();
         }
-        return new Model.WaveDetail(frames, 4, b64(out));
+        return out;
     }
 
     static Model.WavePreview encodePreview(WaveformPreview preview) {

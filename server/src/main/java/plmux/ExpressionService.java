@@ -446,7 +446,10 @@ public final class ExpressionService {
         return source.waveform(player);
     }
 
+    /** 色付き (RGB) の波形があればそれを、なければ表示用の波形を使う。 */
     public WaveformSampler.Sample sample(int player, double timeMs) {
+        WaveformSampler color = source.colorSampler(player);
+        if (color != null) return color.sample(timeMs);
         Model.Waveform w = source.waveform(player);
         if (w == null) return null;
         WaveformSampler s = samplers.get(player);
@@ -456,6 +459,11 @@ public final class ExpressionService {
             samplers.put(player, s);
         }
         return s.sample(timeMs);
+    }
+
+    /** 実機のときだけ、色付き (RGB) の詳細波形を beat-link の WaveformDetail で返す。 */
+    public Object rgbWaveformDetail(int player) {
+        return source instanceof BeatLinkService b ? b.rgbWaveformDetail(player) : null;
     }
 
     public int beatAt(int player, double timeMs) {

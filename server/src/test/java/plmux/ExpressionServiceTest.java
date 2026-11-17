@@ -28,6 +28,7 @@ class ExpressionServiceTest {
         final List<Consumer<StatusEvent>> statusListeners = new CopyOnWriteArrayList<>();
         final List<Consumer<BeatEvent>> beatListeners = new CopyOnWriteArrayList<>();
         final Model.Waveform waveform;
+        WaveformSampler color;
 
         FakeSource() {
             int[] beats = new int[128];
@@ -60,6 +61,7 @@ class ExpressionServiceTest {
         @Override public byte[] artwork(int player) { return null; }
         @Override public void setWaveformStyle(String style) { }
         @Override public Model.Waveform waveform(int player) { return player == 1 ? waveform : null; }
+        @Override public WaveformSampler colorSampler(int player) { return player == 1 ? color : null; }
     }
 
     private static final Model.Track TRACK =
@@ -227,6 +229,23 @@ class ExpressionServiceTest {
             assertEquals(0f, b.getFloat());
             assertEquals(0.25f, b.getFloat(), 1e-6f);
         }
+    }
+
+    @Test
+    void prefersTheColorWaveformOverTheDisplayedOne() throws Exception {
+        // 表示用の波形は赤だが、色付き波形は青
+        byte[] blue = new byte[150 * 4];
+        for (int f = 0; f < 150; f++) {
+            blue[f * 4] = 15;
+            blue[f * 4 + 3] = (byte) 255;
+        }
+        source.color = WaveformSampler.of("rgb", "RGB", 4, blue);
+        write("(tracked-update (swap! globals assoc :s (waveform-sample device-number 500)))");
+        current = state(true, true, 0);
+        startAndAwaitLoad();
+        source.status(1);
+        eventually(() -> global("s") != null, "sample");
+        assertEquals("{:r 0.0, :g 0.0, :b 1.0, :level 0.48387095}", clojure.lang.RT.printString(global("s")));
     }
 
     @Test
