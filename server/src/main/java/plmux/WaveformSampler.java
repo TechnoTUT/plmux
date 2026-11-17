@@ -48,7 +48,15 @@ public final class WaveformSampler {
         return new WaveformSampler(w.key(), w.style(), frames, w.detail().stride(), data);
     }
 
+    /** Base64 にする前の詳細波形から作る (色の解析用の RGB 波形)。 */
+    static WaveformSampler of(String key, String style, int stride, byte[] data) {
+        int frames = data.length / stride;
+        return frames > 0 ? new WaveformSampler(key, style, frames, stride, data) : null;
+    }
+
     String key() { return key; }
+
+    String style() { return style; }
 
     /** 曲の先頭からの時刻 (ms) の色と大きさ。曲の範囲外なら null。 */
     Sample sample(double timeMs) {

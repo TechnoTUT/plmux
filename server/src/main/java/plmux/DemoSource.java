@@ -254,6 +254,20 @@ public final class DemoSource implements PlayerSource {
     }
 
     private final Map<String, Model.Waveform> waveformCache = new ConcurrentHashMap<>();
+    private final Map<Integer, WaveformSampler> colorCache = new ConcurrentHashMap<>();
+
+    /** 実機と同じく、表示の形式とは関係なく RGB の波形で色を出す。 */
+    @Override
+    public WaveformSampler colorSampler(int player) {
+        if (player < 1 || player > DECKS) return null;
+        int trackIndex;
+        synchronized (this) {
+            Deck d = decks[player - 1];
+            if (!d.loaded || System.currentTimeMillis() < d.metadataReadyAt) return null;
+            trackIndex = d.trackIndex;
+        }
+        return colorCache.computeIfAbsent(trackIndex, i -> WaveformSampler.of(generateWaveform(i, "RGB")));
+    }
 
     /** 16 小節ごとの構成。インデックスを超えた分はアウトロ扱い。kind / label / color は rekordbox の HIGH の曲 (beat-link の Util.phraseColor) に倣う。 */
     private enum Section {
