@@ -64,6 +64,11 @@ public final class Main {
 
     public static void main(String[] args) throws Exception {
         System.setProperty("java.awt.headless", "true");
+        // Ableton Link を広報するネットワークにだけつないだ別のホスト (Pod) で、Carabiner だけを動かす
+        if (args.length > 0 && args[0].equals("carabiner")) {
+            CarabinerRelay.main();
+            return;
+        }
         Config config = Config.fromEnv();
         log.info("Starting plmux: {}", config);
         new Main(config).run();
