@@ -98,7 +98,8 @@ plmux also provides these helpers, which work in demo mode too:
 
 | Function | Returns |
 |---|---|
-| `(waveform-sample player time-ms)` | `{:r :g :b :level}` (0–1) of the waveform around that position. With the 3-Band style, low / mid / high become red / green / blue; with Blue, `:r :g :b` are `nil` |
+| `(waveform-sample player time-ms)` | `{:r :g :b :level}` (0–1) of the waveform around that position. The color always comes from rekordbox's RGB waveform, whatever waveform style the GUI displays; only for tracks without RGB analysis does it fall back to the displayed waveform (3-Band: low / mid / high become red / green / blue; Blue: `:r :g :b` are `nil`) |
+| `(rgb-waveform-detail player)` | The RGB waveform detail as a beat-link `WaveformDetail`, also independent of the displayed style. Use it in place of `(.getLatestDetailFor (WaveformFinder/getInstance) n)` in BLT expressions (`nil` in demo mode) |
 | `(beat-at player time-ms)` / `(phrase-at player beat)` | Beat number at a position / the `Model$Phrase` containing a beat |
 | `(waveform player)` / `(master-player)` / `(current-state)` | The same data the GUI uses |
 
@@ -143,9 +144,10 @@ Auto, and set its tempo source to Ableton Link (with plmux's Link mode set to Fo
 ```
 
 The BLT expressions from the dmxctl README can also be pasted as they are (Setup → `setup`, Tracked Update →
-`tracked-update`, Beat → `beat`, Shutdown → `shutdown`, the Phrase Trigger's Started → `phrase-started`), with two
-caveats: they use beat-link objects, so they do nothing useful in demo mode, and `.segmentColor` needs the **RGB**
-waveform style (Settings tab) and an integer scale, e.g. `(.segmentColor detail % 1)` instead of `false`.
+`tracked-update`, Beat → `beat`, Shutdown → `shutdown`, the Phrase Trigger's Started → `phrase-started`), with a few
+changes: they use beat-link objects, so they do nothing useful in demo mode; get the waveform with
+`(rgb-waveform-detail n)` instead of `WaveformFinder`, which only holds the style the GUI displays; and pass an
+integer scale to `.segmentColor` / `.segmentHeight`, e.g. `(.segmentColor detail % 1)` instead of `false`.
 
 ### Container
 
