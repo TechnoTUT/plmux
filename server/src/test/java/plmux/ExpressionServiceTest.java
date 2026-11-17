@@ -303,6 +303,24 @@ class ExpressionServiceTest {
         assertEquals(20, hook("every").intervalMs());
     }
 
+    /** deploy/k8s/expressions.clj (ConfigMap で投入する設定例) が読み込めて、エラーなく動くこと。 */
+    @Test
+    void loadsTheExampleForKubernetes() throws Exception {
+        // テストで LAN に送らないよう、送り先だけ自分に向ける
+        String example = Files.readString(Path.of("..", "deploy", "k8s", "expressions.clj"));
+        assertTrue(example.contains("(def dmxctl-host \""), "the example should define dmxctl-host");
+        write(example.replaceFirst("\\(def dmxctl-host \"[^\"]*\"", "(def dmxctl-host \"127.0.0.1\""));
+        current = state(true, true, 100);
+        startAndAwaitLoad();
+        assertNull(service.status().error());
+        assertTrue(hook("global-setup").defined());
+        assertTrue(hook("every").defined());
+        assertTrue(hook("phrase-started").defined());
+        source.status(1);
+        eventually(() -> hook("every").runs() >= 3 && hook("phrase-started").runs() == 1, "example hooks");
+        for (ExpressionService.HookStatus h : service.status().hooks()) assertEquals(0, h.errors(), h.name());
+    }
+
     @Test
     void worksWithoutAFile() throws Exception {
         service.start();
