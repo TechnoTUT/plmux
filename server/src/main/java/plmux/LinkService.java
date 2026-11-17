@@ -34,6 +34,8 @@ import java.util.regex.Pattern;
  *
  * <p>Carabiner がポートで待ち受けていなければ、lib-carabiner 同梱のバイナリを起動する
  * (Linux x64 / 32bit ARM のみ同梱。それ以外は Carabiner を別途起動すること)。
+ * 接続先 ({@code PLMUX_CARABINER_HOST}) が自分以外のときは起動しない。別のホスト (Kubernetes では別の Pod) の
+ * Carabiner は {@link CarabinerRelay} を通して使う (Carabiner 自身は 127.0.0.1 でしか待ち受けないため)。
  *
  * <p>時刻は Link と同じ単調時計 (System.nanoTime, Linux では CLOCK_MONOTONIC) のマイクロ秒で扱う。
  */
@@ -49,6 +51,7 @@ public final class LinkService {
     private static final int CONNECT_TIMEOUT_MS = 5000;
     private static final int READ_TIMEOUT_MS = 2000;
 
+    private final String host;
     private final int port;
     private final boolean allowEmbedded;
     private final VirtualCdj virtualCdj;
@@ -93,8 +96,10 @@ public final class LinkService {
     };
 
     public LinkService(Config config, VirtualCdj virtualCdj) {
+        this.host = config.carabinerHost();
         this.port = config.carabinerPort();
-        this.allowEmbedded = config.carabinerEmbedded();
+        // 同梱の Carabiner はこのホストでしか起動できない
+        this.allowEmbedded = config.carabinerEmbedded() && isLoopbackHost(host);
         this.virtualCdj = virtualCdj;
         this.mode = config.linkMode();
         this.latencyMs = config.linkLatencyMs();
@@ -185,7 +190,7 @@ public final class LinkService {
         } catch (IOException first) {
             Runner runner = Runner.getInstance();
             if (!allowEmbedded || !runner.canRunCarabiner()) {
-                throw new IOException("Carabiner is not running on port " + port
+                throw new IOException("Carabiner is not running on " + host + ":" + port
                         + (allowEmbedded ? " (and the bundled binary cannot run on this platform)" : ""), first);
             }
             log.info("Starting embedded Carabiner ({}) on port {}", runner.getExecutableName(), port);
@@ -205,7 +210,7 @@ public final class LinkService {
         s.setSoTimeout(READ_TIMEOUT_MS);
         socket = s;
         error = null;
-        log.info("Connected to Carabiner on port {}", port);
+        log.info("Connected to Carabiner on {}:{}", host, port);
         send("version");
         send("status");
         if (mode == Mode.FOLLOW) tieToMaster();
@@ -215,11 +220,22 @@ public final class LinkService {
     private Socket open() throws IOException {
         Socket s = new Socket();
         try {
-            s.connect(new InetSocketAddress("127.0.0.1", port), CONNECT_TIMEOUT_MS);
+            s.connect(new InetSocketAddress(host, port), CONNECT_TIMEOUT_MS);
             return s;
         } catch (IOException e) {
             s.close();
             throw e;
+        }
+    }
+
+    /** localhost か、ループバックの IP アドレスか。名前解決はしない (DNS が引けないときに起動を待たせないため)。 */
+    static boolean isLoopbackHost(String host) {
+        if (host.equalsIgnoreCase("localhost")) return true;
+        if (!host.matches("[0-9.]+") && !host.contains(":")) return false;  // IP アドレスの表記だけ
+        try {
+            return java.net.InetAddress.getByName(host).isLoopbackAddress();
+        } catch (IOException e) {
+            return false;
         }
     }
 
