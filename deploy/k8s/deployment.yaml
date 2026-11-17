@@ -49,8 +49,12 @@ spec:
           volumeMounts:
             - { name: data, mountPath: /data }
             - { name: tmp, mountPath: /tmp }   # 同梱 Carabiner バイナリの展開先
+            # Clojure の式。subPath を使うと ConfigMap の更新が反映されないので、ディレクトリごとマウントする
+            - { name: expressions, mountPath: /config, readOnly: true }
       volumes:
         - name: data
           persistentVolumeClaim: { claimName: plmux-data }
         - name: tmp
           emptyDir: {}
+        - name: expressions
+          configMap: { name: plmux-expressions, optional: true }   # なければ式は動かない
