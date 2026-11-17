@@ -12,6 +12,7 @@ public record Config(
         boolean useStandardPlayerNumber,
         int historyMinPlaySeconds,
         boolean historyRequireOnAir,
+        String carabinerHost,
         int carabinerPort,
         boolean carabinerEmbedded,
         LinkService.Mode linkMode,
@@ -30,6 +31,7 @@ public record Config(
                 boolEnv("PLMUX_USE_STANDARD_PLAYER_NUMBER", false),
                 intEnv("PLMUX_HISTORY_MIN_PLAY_SECONDS", 15),
                 boolEnv("PLMUX_HISTORY_REQUIRE_ON_AIR", true),
+                env("PLMUX_CARABINER_HOST", "127.0.0.1"),
                 intEnv("PLMUX_CARABINER_PORT", 17000),
                 boolEnv("PLMUX_CARABINER_EMBEDDED", true),
                 LinkService.Mode.valueOf(env("PLMUX_LINK_MODE", "OFF").toUpperCase()),
@@ -40,12 +42,12 @@ public record Config(
                 boolEnv("PLMUX_DEMO", false));
     }
 
-    private static String env(String key, String def) {
+    static String env(String key, String def) {
         String v = System.getenv(key);
         return (v == null || v.isBlank()) ? def : v.trim();
     }
 
-    private static int intEnv(String key, int def) {
+    static int intEnv(String key, int def) {
         return Integer.parseInt(env(key, Integer.toString(def)));
     }
 
