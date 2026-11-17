@@ -173,7 +173,9 @@ docker run --network host -v plmux-data:/data plmux
 | `PLMUX_LINK_LATENCY_MS` | `1` | Latency compensation for beat packets |
 | `PLMUX_LINK_ALIGN_BARS` | `true` | Align bars, not just beats |
 | `PLMUX_WAVEFORM_STYLE` | `THREE_BAND` | Default waveform style: `THREE_BAND` / `RGB` / `BLUE`. Can be changed in the GUI's Settings tab, which is saved and takes precedence. Falls back if a player cannot provide it |
-| `PLMUX_CARABINER_PORT` | `17000` | Carabiner port |
+| `PLMUX_CARABINER_HOST` | `127.0.0.1` | Host running Carabiner. For any other host, run plmux there in [Carabiner relay mode](#ableton-link-on-a-separate-host); the bundled Carabiner is only launched for a loopback host |
+| `PLMUX_CARABINER_PORT` | `17000` | Carabiner port (in relay mode: the port the relay listens on) |
+| `PLMUX_CARABINER_INTERNAL_PORT` | `17001` | Relay mode only: port of the Carabiner it launches on 127.0.0.1 |
 | `PLMUX_CARABINER_EMBEDDED` | `true` | Launch the bundled Carabiner binary if none is running |
 | `PLMUX_EXPRESSIONS_FILE` | `$PLMUX_DATA_DIR/expressions.clj` | Clojure expressions file (see [Clojure expressions](#clojure-expressions)). Nothing runs if it does not exist |
 | `PLMUX_DEMO` | `false` | Serve dummy data instead of connecting to DJ Link (for GUI testing) |
@@ -207,6 +209,23 @@ docker run --network host -v plmux-data:/data plmux
   The ConfigMap is optional, so without it nothing runs.
 - The bundled Carabiner is **x86_64 only** (the ARM build in lib-carabiner is 32-bit armhf). On arm64 nodes, run
   Carabiner separately and set `PLMUX_CARABINER_EMBEDDED=false`.
+- Ableton Link is announced on every network of the pod that runs Carabiner. To announce it on one network only, see
+  [Ableton Link on a separate host](#ableton-link-on-a-separate-host).
+
+### Ableton Link on a separate host
+
+Ableton Link is announced on every network interface of the host (or pod) running Carabiner. If plmux needs the DJ
+network for Pro DJ Link but Link should only reach, say, the VJ network, run Carabiner in a separate pod attached to
+that network only, using the same image:
+
+```bash
+java -jar plmux-server.jar carabiner   # in Kubernetes: args: ["carabiner"]
+```
+
+This launches the bundled Carabiner on `127.0.0.1:$PLMUX_CARABINER_INTERNAL_PORT` (Carabiner only listens on loopback)
+and relays TCP connections on all addresses at `$PLMUX_CARABINER_PORT` to it, restarting Carabiner if it stops
+responding. Point the main plmux at it with `PLMUX_CARABINER_HOST` (e.g. the relay's Service name). Anyone who can
+reach the relay can change the Link tempo, so restrict it to plmux (e.g. with a NetworkPolicy).
 - If you go through an Ingress, make sure WebSocket (`/ws`) is allowed.
 - The GUI has no authentication yet. Keep it on the booth LAN or put authentication in front of it at the Ingress.
 - `.github/workflows/image.yml` builds the image and pushes it to `ghcr.io/<owner>/<repo>`.
