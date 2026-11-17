@@ -160,8 +160,9 @@ class ExpressionServiceTest {
         current = state(true, true, 1500);
         startAndAwaitLoad();
 
-        source.status(2);  // テンポマスターではないデッキは無視する
+        // テンポマスターではないデッキは無視する。XDJ-AZ のように続けて届いても、マスターの状態は捨てない
         source.status(1);
+        source.status(2);
         eventually(() -> global("update") != null, "tracked-update");
         assertEquals(List.of(1L, 128.0, 1.064, 3L, 2L, 1500L, "Title", "Artist", 42L, true, true),
                 ((List<?>) global("update")).subList(0, 11));
