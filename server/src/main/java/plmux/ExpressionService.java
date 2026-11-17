@@ -24,7 +24,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 /**
@@ -82,8 +81,11 @@ public final class ExpressionService {
     private volatile String loadError;
     private final Map<String, Stats> stats = new ConcurrentHashMap<>();
 
-    /** tracked-update は、実行が追いつかないときに古い状態を捨てる。 */
-    private final AtomicReference<PlayerSource.StatusEvent> pendingStatus = new AtomicReference<>();
+    /**
+     * tracked-update は、実行が追いつかないときに古い状態を捨てる。XDJ-AZ のように 1 台が複数デッキの状態を続けて送るので、
+     * プレイヤーごとに最新の 1 件を残す (マスターの状態がほかのデッキの状態で上書きされないように)。
+     */
+    private final Map<Integer, PlayerSource.StatusEvent> pendingStatus = new ConcurrentHashMap<>();
     private final AtomicBoolean statusQueued = new AtomicBoolean();
 
     private static final class Stats {
@@ -254,12 +256,14 @@ public final class ExpressionService {
     // ---- イベント ----
 
     private void onStatus(PlayerSource.StatusEvent e) {
-        pendingStatus.set(e);
+        pendingStatus.put(e.player(), e);
         if (!statusQueued.getAndSet(true)) {
             executor.execute(() -> run(() -> {
                 statusQueued.set(false);
-                PlayerSource.StatusEvent latest = pendingStatus.getAndSet(null);
-                if (latest != null) runTrackedUpdate(latest);
+                for (Integer player : List.copyOf(pendingStatus.keySet())) {
+                    PlayerSource.StatusEvent latest = pendingStatus.remove(player);
+                    if (latest != null) runTrackedUpdate(latest);
+                }
             }));
         }
     }
